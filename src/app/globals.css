@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4ebdd;
+  --foreground: #1f1a17;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), "Times New Roman", serif;
+}
+
+.hero-breathe {
+  background: radial-gradient(
+    circle at 18% 24%,
+    rgba(197, 106, 74, 0.24) 0%,
+    rgba(197, 106, 74, 0.12) 30%,
+    rgba(197, 106, 74, 0.05) 46%,
+    transparent 68%
+  );
+  transform-origin: 20% 25%;
+  animation: seijaku-breathe 22s ease-in-out infinite;
+}
+
+@keyframes seijaku-breathe {
+  0% {
+    opacity: 0.56;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  50% {
+    opacity: 0.36;
+    transform: scale(1.06) translate3d(1.2%, -1%, 0);
+  }
+
+  100% {
+    opacity: 0.56;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-breathe {
+    animation: none;
+    opacity: 0.44;
+    transform: none;
+  }
+}
