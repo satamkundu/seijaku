@@ -83,23 +83,24 @@ const pathways = [
 
 const heldItems = ["Literature", "Material", "Scent", "Season"];
 
-const testimonials = [
+const videoTestimonials = [
   {
-    quote: "A Seijaku object changes the room without announcing itself.",
-    name: "A. Chatterjee",
-    title: "Reader and Collector",
+    name: "A. Chen",
+    caption: "A quiet ritual I return to every week.",
+    thumbnail: "/placeholders/testimonial-video-1.jpg",
   },
   {
-    quote: "The ritual felt less like an event and more like a return to attention.",
-    name: "R. Sen",
-    title: "Program Participant",
-  },
-  {
-    quote: "Everything carries a sense of thought, season, and lived use.",
-    name: "M. Dutta",
-    title: "Gift Recipient",
+    name: "M. Durr",
+    caption: "Seijaku creates space where my mind can settle.",
+    thumbnail: "/placeholders/testimonial-video-2.jpg",
   },
 ];
+
+const reviewerImageCard = {
+  label: "Community of Seijaku",
+  supportingText: "A gathering shaped by stillness, ritual, and care.",
+  image: "/placeholders/reviewers-group.jpg",
+};
 
 export default function OurStoryPage() {
   return (
@@ -207,16 +208,61 @@ export default function OurStoryPage() {
           <div className="max-w-3xl">
             <SectionHeading>In Their Words</SectionHeading>
           </div>
-          <div className="mt-10 grid gap-10 md:grid-cols-2 xl:grid-cols-3 xl:gap-12">
-            {testimonials.map((item) => (
-              <article key={item.name} className="max-w-[34ch]">
-                <p className="font-serif text-[26px] leading-[1.46] tracking-[-0.02em] text-[#1c1c1c] sm:text-[28px]">
-                  &ldquo;{item.quote}&rdquo;
-                </p>
-                <p className="mt-6 text-[14px] leading-[1.8] text-[#4f4943]">{item.name}</p>
-                <p className="text-[14px] font-light leading-[1.8] text-[#7a7268]">{item.title}</p>
-              </article>
-            ))}
+          <div className="mt-10 grid gap-7 lg:grid-cols-[1.12fr_0.88fr] lg:items-start lg:gap-8">
+            <article className="overflow-hidden rounded-[22px] bg-[#eee7dc]">
+              <div
+                role="img"
+                aria-label="Community of Seijaku reviewers gathered in a calm setting"
+                className="relative aspect-[5/4] w-full bg-[#dfd5c5] bg-cover bg-center"
+                style={{ backgroundImage: `url(${reviewerImageCard.image})` }}
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(15,12,10,0.24) 0%, rgba(15,12,10,0.08) 36%, rgba(15,12,10,0) 100%)",
+                  }}
+                />
+              </div>
+              <div className="px-5 py-5 sm:px-6 sm:py-6">
+                <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-[#5f554a]">{reviewerImageCard.label}</p>
+                <p className="mt-2 text-[14px] font-light leading-[1.75] text-[#685f55]">{reviewerImageCard.supportingText}</p>
+              </div>
+            </article>
+
+            <div className="grid gap-6 sm:gap-7">
+              {videoTestimonials.map((item) => (
+                <article key={item.name} className="overflow-hidden rounded-[20px] bg-[#eee7dc]">
+                  <div
+                    className="relative aspect-[16/10] w-full bg-[#d8cfbf] bg-cover bg-center"
+                    style={{ backgroundImage: `url(${item.thumbnail})` }}
+                  >
+                    <div
+                      aria-hidden
+                      className="absolute inset-0"
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(18,15,13,0.38) 0%, rgba(18,15,13,0.16) 46%, rgba(18,15,13,0.08) 100%)",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Play testimonial video from ${item.name}`}
+                      className="group absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/55 bg-[rgba(23,20,17,0.42)] text-white transition hover:bg-[rgba(23,20,17,0.56)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0eadf] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(23,20,17,0.48)]"
+                    >
+                      <span aria-hidden className="ml-0.5 text-[15px] leading-none">
+                        ?
+                      </span>
+                    </button>
+                  </div>
+                  <div className="px-5 py-5 sm:px-6 sm:py-6">
+                    <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-[#5f554a]">{item.name}</p>
+                    <p className="mt-2 text-[14px] font-light leading-[1.75] text-[#655d53]">&ldquo;{item.caption}&rdquo;</p>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -257,3 +303,4 @@ export default function OurStoryPage() {
     </main>
   );
 }
+

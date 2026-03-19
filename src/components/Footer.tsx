@@ -12,6 +12,7 @@ const journalLinks = [
   { label: "Seijaku Weeklies", href: "#footer-email" },
   { label: "A Seijaku Life", href: "/a-seijaku-life" },
   { label: "Seijaku on YouTube", href: "https://www.youtube.com/" },
+  { label: "Our Story", href: "/our-story" },
 ];
 
 const infoLinks = [
@@ -151,6 +152,25 @@ export default function Footer() {
                   <FooterLink href={link.href} label={link.label} />
                 </li>
               ))}
+              <li>
+                <div className="mt-5">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[rgba(31,26,23,0.58)]">
+                    Registered Office
+                  </p>
+                  <address className="mt-2 not-italic text-[13px] leading-[1.65] text-[rgba(31,26,23,0.72)]">
+                    <span className="block">Seijaku Craftworks Pvt Ltd</span>
+                    <span className="block">2 A, F 154, B.P. Township,</span>
+                    <span className="block">Kolkata 700094</span>
+                  </address>
+                  <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-[rgba(31,26,23,0.58)]">Phone</p>
+                  <a
+                    href="tel:+919432804418"
+                    className="mt-2 inline-block text-[13px] leading-[1.65] text-[rgba(31,26,23,0.72)] hover:text-[rgba(31,26,23,0.84)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1f1d1a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#e8e2d7]"
+                  >
+                    +91 9432804418
+                  </a>
+                </div>
+              </li>
             </ul>
           </div>
         </section>
@@ -162,3 +182,4 @@ export default function Footer() {
     </footer>
   );
 }
+
