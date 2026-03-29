@@ -1,59 +1,25 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+import { drawerBrowseSections } from "@/src/lib/navigation";
 
 type MenuSliderProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
-type IntentItem = {
-  title: string;
-  subtitle?: string;
-  href?: string;
-  children?: Array<{ label: string; href: string }>;
-};
+const defaultExpandedGroups = ["By Type-Fragrances", "By Type-Gift Sets"];
 
-const intentItems: IntentItem[] = [
-  {
-    title: "Gift Gently",
-    subtitle: "Choose a quiet offering",
-    children: [
-      { label: "To Yourself", href: "/shop" },
-      { label: "To a Loved One", href: "/seasonaldrops" },
-    ],
-  },
-  {
-    title: "Gift a Program",
-    subtitle: "A guided ritual experience",
-    href: "/ritual",
-  },
-  {
-    title: "Recommend a Retreat",
-    subtitle: "For deeper immersion",
-    href: "/retreats",
-  },
-  {
-    title: "Gift an Exclusive Seasonal",
-    subtitle: "Limited cultural editions",
-    href: "/seasonaldrops",
-  },
-  {
-    title: "Our Story",
-    href: "/our-story",
-  },
-  {
-    title: "Behind the Scenes",
-    href: "/a-seijaku-life",
-  },
-  {
-    title: "Shop All",
-    href: "/shop-all",
-  },
-];
+function getGroupKey(sectionTitle: string, groupLabel: string) {
+  return `${sectionTitle}-${groupLabel}`;
+}
 
 export default function MenuSlider({ isOpen, onClose }: MenuSliderProps) {
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(defaultExpandedGroups);
+
   useEffect(() => {
     if (!isOpen) {
       return undefined;
@@ -66,6 +32,14 @@ export default function MenuSlider({ isOpen, onClose }: MenuSliderProps) {
     };
   }, [isOpen]);
 
+  const expandedSet = useMemo(() => new Set(expandedGroups), [expandedGroups]);
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((current) =>
+      current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key],
+    );
+  };
+
   return (
     <div
       className={`menuOverlay transition-opacity duration-300 ease-out ${
@@ -74,43 +48,94 @@ export default function MenuSlider({ isOpen, onClose }: MenuSliderProps) {
       aria-hidden={!isOpen}
     >
       <div className={`menuBackdrop ${isOpen ? "is-open" : ""}`} onClick={onClose} />
-      <aside className={`menuDrawer ${isOpen ? "is-open" : ""}`}>
+      <aside id="seijaku-drawer" className={`menuDrawer ${isOpen ? "is-open" : ""}`} aria-label="Browse Seijaku collections">
         <div className="menuDrawerInner">
-          <p className="font-serif text-[19px] tracking-[-0.01em] text-[rgba(28,29,27,0.96)]">
-            How would you like to begin?
-          </p>
+          <div className="border-b border-[rgba(95,88,78,0.1)] pb-4">
+            <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-[rgba(76,70,61,0.76)]">
+              EXPLORE SEIJAKU
+            </p>
+          </div>
 
-          <ul className="mt-8 space-y-9">
-            {intentItems.map((item) => (
-              <li key={item.title} className="menuItem">
-                {item.href ? (
-                  <Link href={item.href} className="menuItemTitle" onClick={onClose}>
-                    {item.title}
-                  </Link>
-                ) : (
-                  <p className="menuItemTitle">{item.title}</p>
-                )}
+          <div className="mt-6 space-y-10">
+            {drawerBrowseSections.map((section) => (
+              <section key={section.title} aria-labelledby={`drawer-section-${section.title}`}>
+                <p
+                  id={`drawer-section-${section.title}`}
+                  className="text-[10px] uppercase tracking-[0.26em] text-[rgba(92,84,73,0.74)]"
+                >
+                  {section.title}
+                </p>
 
-                {item.subtitle && <p className="menuItemSubtitle">{item.subtitle}</p>}
+                <div className="mt-4 space-y-4 border-t border-[rgba(95,88,78,0.1)] pt-5">
+                  {section.groups.map((group) => {
+                    const hasChildren = Boolean(group.children?.length);
+                    const key = getGroupKey(section.title, group.label);
+                    const isExpanded = expandedSet.has(key);
 
-                {item.children && (
-                  <ul className="mt-3 space-y-2 pl-1">
-                    {item.children.map((subItem) => (
-                      <li key={subItem.label}>
-                        <Link
-                          href={subItem.href}
-                          className="text-[14px] text-[rgba(28,29,27,0.9)] underline-offset-4 transition-opacity duration-200 hover:opacity-75 hover:underline"
-                          onClick={onClose}
-                        >
-                          {subItem.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
+                    if (hasChildren) {
+                      return (
+                        <div key={key} className="rounded-[18px] bg-[rgba(255,251,245,0.34)] px-4 py-3.5">
+                          <div className="flex items-start justify-between gap-3">
+                            {group.href ? (
+                              <Link
+                                href={group.href}
+                                className="font-serif text-[20px] leading-[1.18] tracking-[-0.015em] text-[rgba(28,29,27,0.96)] transition-opacity duration-200 hover:opacity-74 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8e806e] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(247,241,231,0.92)]"
+                                onClick={onClose}
+                              >
+                                {group.label}
+                              </Link>
+                            ) : (
+                              <p className="font-serif text-[20px] leading-[1.18] tracking-[-0.015em] text-[rgba(28,29,27,0.96)]">{group.label}</p>
+                            )}
+                            <button
+                              type="button"
+                              aria-expanded={isExpanded}
+                              aria-controls={`drawer-group-${key}`}
+                              onClick={() => toggleGroup(key)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[rgba(56,54,48,0.82)] transition-colors duration-200 hover:bg-[rgba(255,255,255,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8e806e] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(247,241,231,0.92)]"
+                            >
+                              <ChevronDown
+                                size={16}
+                                strokeWidth={1.8}
+                                className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : "rotate-0"}`}
+                              />
+                            </button>
+                          </div>
+
+                          {isExpanded && (
+                            <ul id={`drawer-group-${key}`} className="mt-4 space-y-1.5 pl-4">
+                              {group.children?.map((child) => (
+                                <li key={`${key}-${child.label}`}>
+                                  <Link
+                                    href={child.href}
+                                    className="inline-flex min-h-[36px] items-center text-[14px] font-normal leading-[1.75] text-[rgba(53,49,44,0.76)] transition-opacity duration-200 hover:opacity-72 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8e806e] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(247,241,231,0.92)]"
+                                    onClick={onClose}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <Link
+                        key={key}
+                        href={group.href ?? "/shop-all"}
+                        className="block min-h-[38px] text-[16px] font-medium leading-[1.72] text-[rgba(28,29,27,0.92)] transition-opacity duration-200 hover:opacity-72 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8e806e] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(247,241,231,0.92)]"
+                        onClick={onClose}
+                      >
+                        {group.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
             ))}
-          </ul>
+          </div>
         </div>
       </aside>
     </div>

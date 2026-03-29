@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import CategoryTabs from "@/src/components/shop-all/CategoryTabs";
 import FeaturedCollectionCallout from "@/src/components/shop-all/FeaturedCollectionCallout";
@@ -39,6 +40,41 @@ const initialSelections: FilterSelections = {
   formats: [],
 };
 
+const typeOptions: ShopItemType[] = ["Box / Set", "Individual Object", "Seasonal Drop", "Program", "Retreat"];
+const audienceOptions: ShopAudience[] = ["Elderly", "Adults", "Teenagers", "All Ages"];
+const availabilityOptions: ShopAvailability[] = [
+  "In Stock",
+  "Limited Edition",
+  "Upcoming",
+  "Open for Booking",
+  "Sold Out",
+  "Waitlist",
+];
+const collectionOptions: ShopCollection[] = ["Hemanta", "Seasonal Drop", "Core Collection"];
+const formatOptions: ShopFormat[] = ["Physical", "Digital", "In-Person"];
+
+function parseSingleParam<T extends string>(value: string | null, options: readonly T[], fallback: T): T {
+  if (value && options.includes(value as T)) {
+    return value as T;
+  }
+
+  return fallback;
+}
+
+function parseMultiParam<T extends string>(values: string[], options: readonly T[]) {
+  return values.filter((value): value is T => options.includes(value as T));
+}
+
+function getSelectionsFromParams(searchParams: ReturnType<typeof useSearchParams>): FilterSelections {
+  return {
+    types: parseMultiParam(searchParams.getAll("type"), typeOptions),
+    audiences: parseMultiParam(searchParams.getAll("audience"), audienceOptions),
+    availability: parseMultiParam(searchParams.getAll("availability"), availabilityOptions),
+    collections: parseMultiParam(searchParams.getAll("collection"), collectionOptions),
+    formats: parseMultiParam(searchParams.getAll("format"), formatOptions),
+  };
+}
+
 function sortItems(items: ShopItem[], sortBy: ShopSortOption) {
   const list = [...items];
 
@@ -62,11 +98,20 @@ function sortItems(items: ShopItem[], sortBy: ShopSortOption) {
 }
 
 export default function ShopAllPage() {
-  const [activeCategory, setActiveCategory] = useState<ShopTopCategory>("All");
-  const [sortBy, setSortBy] = useState<ShopSortOption>("Featured");
-  const [selections, setSelections] = useState<FilterSelections>(initialSelections);
-  const [minPrice, setMinPrice] = useState<number | null>(null);
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const searchParams = useSearchParams();
+  const [activeCategory, setActiveCategory] = useState<ShopTopCategory>(() =>
+    parseSingleParam(searchParams.get("category"), shopTopCategories, "All"),
+  );
+  const [sortBy, setSortBy] = useState<ShopSortOption>(() => parseSingleParam(searchParams.get("sort"), sortOptions, "Featured"));
+  const [selections, setSelections] = useState<FilterSelections>(() => getSelectionsFromParams(searchParams));
+  const [minPrice, setMinPrice] = useState<number | null>(() => {
+    const value = searchParams.get("minPrice");
+    return value ? Number(value) : null;
+  });
+  const [maxPrice, setMaxPrice] = useState<number | null>(() => {
+    const value = searchParams.get("maxPrice");
+    return value ? Number(value) : null;
+  });
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   const filteredItems = useMemo(() => {
@@ -257,3 +302,4 @@ export default function ShopAllPage() {
     </main>
   );
 }
+
