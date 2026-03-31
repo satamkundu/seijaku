@@ -1,4 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
+
+import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
+
+import SplitProcessVideoStrip from "@/src/components/SplitProcessVideoStrip";
 import OurStoryHero from "./OurStoryHero";
 
 type EditorialSectionProps = {
@@ -60,27 +65,6 @@ const deliberateLines = [
   "Lived with.",
 ];
 
-const pathways = [
-  {
-    title: "Objects of Stillness",
-    body: "Design-led scent and tactile forms. Made to anchor space.",
-    href: "/lifestyle",
-    linkText: "Explore Objects of Stillness",
-  },
-  {
-    title: "Guided Rituals",
-    body: "Short multisensory practices. Released monthly. Designed for return.",
-    href: "/ritual",
-    linkText: "Enter Guided Rituals",
-  },
-  {
-    title: "Immersive Retreats",
-    body: "Seasonal, small-cohort immersions. Craft. Movement. Stillness.",
-    href: "/experiences",
-    linkText: "View Immersive Retreats",
-  },
-];
-
 const heldItems = ["Literature", "Material", "Scent", "Season"];
 
 const testimonials = [
@@ -130,10 +114,12 @@ export default function OurStoryPage() {
             <div className="lg:pt-1">
               <div className="relative overflow-hidden rounded-[24px]">
                 <div className="relative aspect-[4/5] sm:aspect-[4/4.6] lg:aspect-[4/5]">
-                  <img
+                  <Image
                     src="/images/seijaku sec img 2.png"
                     alt="Editorial image representing Seijaku's cultural foundation"
-                    className="h-full w-full object-cover object-[center_48%]"
+                    fill
+                    sizes="(min-width: 1024px) 40vw, 100vw"
+                    className="object-cover object-[center_48%]"
                   />
                   <div
                     aria-hidden
@@ -159,29 +145,7 @@ export default function OurStoryPage() {
         </div>
       </EditorialSection>
 
-      <section className="bg-[#ece5da] py-16 sm:py-18 lg:py-20">
-        <div className="page-container max-w-[1200px]">
-          <div className="max-w-3xl">
-            <SectionHeading>Three Pathways</SectionHeading>
-          </div>
-          <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3 xl:gap-8">
-            {pathways.map((pathway) => (
-              <article key={pathway.title} className="rounded-[22px] bg-[#f6f1e9] px-6 py-7 sm:px-7 sm:py-8">
-                <h3 className="mt-0 font-serif text-[28px] leading-[1.12] tracking-[-0.02em] text-[#1c1c1c] sm:text-[30px]">
-                  {pathway.title}
-                </h3>
-                <p className="mt-4 text-[16px] font-light leading-[1.82] text-[#5d574e]">{pathway.body}</p>
-                <Link
-                  href={pathway.href}
-                  className="mt-6 inline-flex text-[13px] font-normal tracking-[0.04em] text-[#2e4a36] hover:underline"
-                >
-                  {pathway.linkText}
-                </Link>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      <SplitProcessVideoStrip />
 
       <section className="whatWeHold">
         <div className="whatWeHold__inner">
@@ -233,22 +197,13 @@ export default function OurStoryPage() {
           </div>
 
           <div className="mt-12 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:gap-10">
-            <Link
-              href="/lifestyle"
-              className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline"
-            >
+            <Link href={canonicalShopRoutes.lifestyle} className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
               Explore Objects of Stillness
             </Link>
-            <Link
-              href="/ritual"
-              className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline"
-            >
+            <Link href="/ritual" className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
               Enter Guided Rituals
             </Link>
-            <Link
-              href="/experiences"
-              className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline"
-            >
+            <Link href="/experiences" className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
               View Immersive Retreats
             </Link>
           </div>

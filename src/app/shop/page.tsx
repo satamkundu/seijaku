@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import ShopAllPageClient from "@/src/components/shop/ShopAllPageClient";
 
 export default function ShopPage() {
-  redirect("/shop-all");
+  return <ShopAllPageClient />;
 }

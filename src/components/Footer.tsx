@@ -1,14 +1,19 @@
 import Link from "next/link";
 
+import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
+
 const exploreLinks = [
-  { label: "Objects of Stillness", href: "/lifestyle" },
-  { label: "Guided Programs", href: "/programs" },
-  { label: "Immersive Retreats", href: "/experiences" },
-  { label: "Seasonal Drops", href: "/seasonaldrops" },
-  { label: "Shop All", href: "/shop-all" },
+  { label: "Shop All", href: canonicalShopRoutes.shopAll },
+  { label: "Lifestyle", href: canonicalShopRoutes.lifestyle },
+  { label: "Perfumes", href: canonicalShopRoutes.perfumes },
+  { label: "Scarves & Squares", href: canonicalShopRoutes.scarvesAndSquares },
+  { label: "Diffusers", href: canonicalShopRoutes.diffusers },
+  { label: "Dokra Ornaments", href: canonicalShopRoutes.dokraOrnaments },
+  { label: "Collection", href: canonicalShopRoutes.collection },
 ];
 
 const journalLinks = [
+  { label: "Our Story", href: "/our-story" },
   { label: "Seijaku Weeklies", href: "#footer-email" },
   { label: "A Seijaku Life", href: "/a-seijaku-life" },
   { label: "Seijaku on YouTube", href: "https://www.youtube.com/" },
@@ -43,12 +48,7 @@ function FooterLink({ href, label }: { href: string; label: string }) {
 
   if (isExternal) {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        className="text-[14px] leading-[1.8] text-[#1f1d1a] hover:opacity-65"
-      >
+      <a href={href} target="_blank" rel="noreferrer" className="text-[14px] leading-[1.8] text-[#1f1d1a] hover:opacity-65">
         {label}
       </a>
     );
@@ -99,9 +99,7 @@ export default function Footer() {
         <section className="grid gap-12 md:grid-cols-2 xl:grid-cols-[1.15fr_0.95fr_1fr_0.95fr] xl:gap-16">
           <div>
             <p className="text-[12px] font-medium uppercase tracking-[0.28em] text-[#1f1d1a]">Explore</p>
-            <p className="mt-3 max-w-[24ch] text-[14px] leading-[1.8] text-[#7e776d]">
-              Pathways into ritual and immersion.
-            </p>
+            <p className="mt-3 max-w-[24ch] text-[14px] leading-[1.8] text-[#7e776d]">Pathways into ritual and immersion.</p>
             <ul className="mt-8 space-y-5">
               {exploreLinks.map((link) => (
                 <li key={link.label}>
@@ -113,9 +111,7 @@ export default function Footer() {
 
           <div>
             <p className="text-[12px] font-medium uppercase tracking-[0.28em] text-[#1f1d1a]">Journal</p>
-            <p className="mt-3 max-w-[24ch] text-[14px] leading-[1.8] text-[#7e776d]">
-              Literature, scent, and seasonal reflections.
-            </p>
+            <p className="mt-3 max-w-[24ch] text-[14px] leading-[1.8] text-[#7e776d]">Literature, scent, and seasonal reflections.</p>
             <ul className="mt-8 space-y-5">
               {journalLinks.map((link) => (
                 <li key={link.label}>

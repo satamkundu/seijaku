@@ -1,59 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
+import { drawerSections } from "@/src/lib/navigation";
 
 type MenuSliderProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
-type IntentItem = {
-  title: string;
-  subtitle?: string;
-  href?: string;
-  children?: Array<{ label: string; href: string }>;
-};
-
-const intentItems: IntentItem[] = [
-  {
-    title: "Gift Gently",
-    subtitle: "Choose a quiet offering",
-    children: [
-      { label: "To Yourself", href: "/shop" },
-      { label: "To a Loved One", href: "/seasonaldrops" },
-    ],
-  },
-  {
-    title: "Gift a Program",
-    subtitle: "A guided ritual experience",
-    href: "/ritual",
-  },
-  {
-    title: "Recommend a Retreat",
-    subtitle: "For deeper immersion",
-    href: "/retreats",
-  },
-  {
-    title: "Gift an Exclusive Seasonal",
-    subtitle: "Limited cultural editions",
-    href: "/seasonaldrops",
-  },
-  {
-    title: "Our Story",
-    href: "/our-story",
-  },
-  {
-    title: "Behind the Scenes",
-    href: "/a-seijaku-life",
-  },
-  {
-    title: "Shop All",
-    href: "/shop-all",
-  },
-];
-
 export default function MenuSlider({ isOpen, onClose }: MenuSliderProps) {
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    Fragrances: true,
+    "Gift Sets": true,
+  });
+
   useEffect(() => {
     if (!isOpen) {
       return undefined;
@@ -66,6 +29,10 @@ export default function MenuSlider({ isOpen, onClose }: MenuSliderProps) {
     };
   }, [isOpen]);
 
+  const toggleGroup = (label: string) => {
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
   return (
     <div
       className={`menuOverlay transition-opacity duration-300 ease-out ${
@@ -74,43 +41,72 @@ export default function MenuSlider({ isOpen, onClose }: MenuSliderProps) {
       aria-hidden={!isOpen}
     >
       <div className={`menuBackdrop ${isOpen ? "is-open" : ""}`} onClick={onClose} />
-      <aside className={`menuDrawer ${isOpen ? "is-open" : ""}`}>
+      <aside className={`menuDrawer ${isOpen ? "is-open" : ""}`} id="seijaku-drawer">
         <div className="menuDrawerInner">
-          <p className="font-serif text-[19px] tracking-[-0.01em] text-[rgba(28,29,27,0.96)]">
-            How would you like to begin?
-          </p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[rgba(35,35,31,0.78)]">Explore Seijaku</p>
+          <div className="mt-4 h-px w-full bg-[rgba(71,67,60,0.14)]" />
 
-          <ul className="mt-8 space-y-9">
-            {intentItems.map((item) => (
-              <li key={item.title} className="menuItem">
-                {item.href ? (
-                  <Link href={item.href} className="menuItemTitle" onClick={onClose}>
-                    {item.title}
-                  </Link>
-                ) : (
-                  <p className="menuItemTitle">{item.title}</p>
-                )}
+          <div className="mt-7 space-y-7">
+            {drawerSections.map((section) => (
+              <section key={section.label}>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(79,73,66,0.8)]">{section.label}</p>
+                <div className="mt-4 space-y-2.5">
+                  {section.entries.map((entry) => {
+                    const isGroup = Boolean(entry.children?.length);
+                    const isOpenGroup = openGroups[entry.label] ?? false;
 
-                {item.subtitle && <p className="menuItemSubtitle">{item.subtitle}</p>}
+                    if (isGroup) {
+                      return (
+                        <div key={entry.label} className="rounded-[18px] border border-[rgba(120,110,94,0.1)] bg-[rgba(255,255,255,0.18)] px-4 py-3.5">
+                          <button
+                            type="button"
+                            className="flex w-full items-center justify-between gap-4 text-left"
+                            onClick={() => toggleGroup(entry.label)}
+                            aria-expanded={isOpenGroup}
+                          >
+                            <span className="font-serif text-[21px] leading-[1.14] tracking-[-0.018em] text-[rgba(28,29,27,0.94)] sm:text-[22px]">
+                              {entry.label}
+                            </span>
+                            <span className="text-[10px] uppercase tracking-[0.18em] text-[rgba(65,62,56,0.62)]">
+                              {isOpenGroup ? "Hide" : "Show"}
+                            </span>
+                          </button>
 
-                {item.children && (
-                  <ul className="mt-3 space-y-2 pl-1">
-                    {item.children.map((subItem) => (
-                      <li key={subItem.label}>
+                          {isOpenGroup && (
+                            <ul className="mt-3.5 space-y-2 pl-3">
+                              {entry.children?.map((child) => (
+                                <li key={child.label}>
+                                  <Link
+                                    href={child.href}
+                                    className="text-[13px] leading-[1.68] text-[rgba(56,54,48,0.84)] transition-opacity duration-200 hover:opacity-70"
+                                    onClick={onClose}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={entry.label} className="px-1 py-0.5">
                         <Link
-                          href={subItem.href}
-                          className="text-[14px] text-[rgba(28,29,27,0.9)] underline-offset-4 transition-opacity duration-200 hover:opacity-75 hover:underline"
+                          href={entry.href ?? canonicalShopRoutes.shopAll}
+                          className="font-serif text-[21px] leading-[1.16] tracking-[-0.018em] text-[rgba(28,29,27,0.94)] transition-opacity duration-200 hover:opacity-74 sm:text-[22px]"
                           onClick={onClose}
                         >
-                          {subItem.label}
+                          {entry.label}
                         </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             ))}
-          </ul>
+          </div>
         </div>
       </aside>
     </div>
