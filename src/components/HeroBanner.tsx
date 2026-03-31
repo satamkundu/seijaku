@@ -1,6 +1,5 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { motion, useMotionTemplate, useScroll, useTransform } from "framer-motion";
 import { RefObject, useRef } from "react";
@@ -8,6 +7,14 @@ import { RefObject, useRef } from "react";
 type HeroBannerProps = {
   heroRef?: RefObject<HTMLElement | null>;
 };
+
+const heroCopy = {
+  headlineTop: "Perfume Rituals",
+  headlineBottom: "for Modern Calm",
+  subline: "For body and home",
+  supportingTop: "Signature scents paired with handcrafted Bengal forms",
+  supportingBottom: "— made to gift or keep.",
+} as const;
 
 export default function HeroBanner({ heroRef }: HeroBannerProps) {
   const localRef = useRef<HTMLElement | null>(null);
@@ -17,18 +24,18 @@ export default function HeroBanner({ heroRef }: HeroBannerProps) {
     offset: ["start start", "end start"],
   });
 
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "-8%"]);
-  const imageScale = useTransform(scrollYProgress, [0, 1], [1.015, 1.04]);
-  const headlineY = useTransform(scrollYProgress, [0, 0.4], [0, -40]);
+  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "-3.5%"]);
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1.02, 1.045]);
+  const headlineY = useTransform(scrollYProgress, [0, 0.4], [0, -36]);
   const headlineOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0.5]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 1], [0.26, 0.42]);
-  const heroBlur = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 1], [0.2, 0.3]);
+  const heroBlur = useTransform(scrollYProgress, [0, 1], [0, 0.6]);
   const heroFilter = useMotionTemplate`blur(${heroBlur}px)`;
 
   return (
     <section
       ref={activeRef}
-      className="relative mt-[72px] flex h-[52vh] min-h-[440px] w-screen items-center overflow-hidden pb-[120px] sm:mt-[76px] sm:h-[56vh] sm:min-h-[500px] md:h-[min(62vh,700px)] md:min-h-[560px]"
+      className="relative mt-[118px] flex h-[60vh] min-h-[560px] w-screen items-start overflow-hidden bg-[#665a4d] pb-[44px] pt-[92px] sm:mt-[124px] sm:h-[62vh] sm:min-h-[600px] sm:pb-[48px] sm:pt-[96px] md:mt-[128px] md:h-[64vh] md:min-h-[640px] md:pb-[52px] md:pt-[92px] lg:mt-[132px] lg:h-[68vh] lg:min-h-[700px] lg:pb-[60px] lg:pt-[104px] xl:h-[72vh] xl:min-h-[760px] xl:pb-[68px] xl:pt-[112px]"
     >
       <motion.div
         aria-hidden
@@ -37,12 +44,12 @@ export default function HeroBanner({ heroRef }: HeroBannerProps) {
       >
         <motion.div className="relative h-full w-full" style={{ animation: "seijaku-kenburns 32s ease-out infinite" }}>
           <Image
-            src="/images/hero banner Home.png"
+            src="/images/Hero Banner HP_Kolkata summer 4.png"
             alt=""
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[center_42%]"
+            className="object-cover object-center brightness-[0.9] contrast-[1.04] saturate-[1.01] sm:object-center md:object-center lg:object-center xl:object-center"
           />
         </motion.div>
       </motion.div>
@@ -53,7 +60,7 @@ export default function HeroBanner({ heroRef }: HeroBannerProps) {
         style={{
           opacity: overlayOpacity,
           background:
-            "linear-gradient(to bottom, rgba(15,18,15,0.18) 0%, rgba(15,18,15,0.26) 38%, rgba(15,18,15,0.5) 100%)",
+            "linear-gradient(90deg, rgba(16,13,11,0.46) 0%, rgba(16,13,11,0.24) 28%, rgba(16,13,11,0.08) 56%, rgba(16,13,11,0.03) 100%), linear-gradient(to bottom, rgba(16,13,11,0.08) 0%, rgba(16,13,11,0.08) 42%, rgba(16,13,11,0.14) 100%)",
         }}
       />
 
@@ -62,170 +69,45 @@ export default function HeroBanner({ heroRef }: HeroBannerProps) {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle at 58% 38%, rgba(255,255,255,0.08), transparent 56%), linear-gradient(90deg, rgba(8,10,9,0.3) 0%, rgba(8,10,9,0.08) 40%, rgba(8,10,9,0.2) 100%)",
+            "radial-gradient(circle at 54% 28%, rgba(255,255,255,0.018), transparent 46%), linear-gradient(90deg, rgba(10,9,8,0.18) 0%, rgba(10,9,8,0.07) 34%, rgba(10,9,8,0.01) 56%, rgba(10,9,8,0.03) 100%)",
         }}
       />
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 mix-blend-screen"
-        style={{
-          background:
-            "radial-gradient(circle at 68% 70%, rgba(255,236,187,0.34), rgba(255,236,187,0.11) 28%, transparent 52%)",
-          animation: "seijaku-diffuser-glow 6.5s ease-in-out infinite",
-        }}
-      />
-
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 mix-blend-screen"
-        style={{
-          background:
-            "radial-gradient(circle at 63% 79%, rgba(250,214,138,0.32), rgba(250,214,138,0.12) 24%, transparent 46%)",
-          animation: "seijaku-oil-glimmer 7.8s ease-in-out infinite",
-        }}
-      />
-
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay [background-image:radial-gradient(rgba(255,255,255,0.35)_0.55px,transparent_0.55px)] [background-size:3px_3px]"
-      />
-
-      <div className="relative z-[3] flex w-full items-center justify-center md:justify-start">
-        <motion.div
-          style={{ y: headlineY, opacity: headlineOpacity }}
-          className="page-container max-w-none text-center md:text-left"
-        >
-          <div className="max-w-[580px] md:max-w-[520px]">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.08 }}
-              className="inline-flex"
-            >
-              <Image
-                src="/images/Seijaku%20logo_white.png"
-                alt="Seijaku"
-                width={132}
-                height={26}
-                priority
-                className="h-auto w-[100px] sm:w-[114px] md:w-[122px]"
-              />
-            </motion.div>
+      <div className="relative z-[3] flex w-full items-start justify-start overflow-hidden">
+        <motion.div style={{ y: headlineY, opacity: headlineOpacity }} className="page-container max-w-none text-left">
+          <div className="max-w-[1180px]">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
-              className="mt-2 font-serif text-[clamp(20px,2vw,28px)] font-medium leading-[1.12] tracking-[0.02em]"
-              style={{ color: "#F4F2ED" }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.18 }}
+              className="mt-0 text-[clamp(31px,4vw,52px)] font-medium leading-[1.02] tracking-[-0.03em]"
+              style={{ color: "#F2ECE2", textShadow: "0 2px 22px rgba(0,0,0,0.2)" }}
             >
-              Multisensory Rituals for Urban Calm
+              <span className="block whitespace-nowrap">{heroCopy.headlineTop}</span>
+              <span className="mt-1 block whitespace-nowrap">{heroCopy.headlineBottom}</span>
             </motion.h1>
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-              className="mt-3 max-w-[420px] text-[15px] leading-[1.55] md:mx-0"
-              style={{ color: "rgba(255,255,255,0.85)" }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.28 }}
+              className="mt-5 whitespace-nowrap text-[16px] leading-[1.55] sm:text-[17px]"
+              style={{ color: "#efe4d2", textShadow: "0 2px 16px rgba(0,0,0,0.18)" }}
             >
-              Crafted in Culture, Guided by Season
+              {heroCopy.subline}
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.38 }}
-              className="mt-4 max-w-[520px] text-[15px] font-medium leading-[1.65] sm:mt-5 md:hidden"
-              style={{ color: "#F4F2ED", textShadow: "0 1px 18px rgba(0,0,0,0.32)" }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.36 }}
+              className="mt-6 text-[clamp(12px,1.85vw,28px)] font-light leading-[1.3] sm:text-[clamp(13px,1.8vw,30px)]"
+              style={{ color: "rgba(245,236,223,0.94)", textShadow: "0 2px 18px rgba(0,0,0,0.16)" }}
             >
-              Design-led scent, tactile, and visual objects inspired by literature - paired with research-informed
-              wellness rituals and cultural immersion experiences rooted in Bengal.
+              <span className="block whitespace-nowrap">{heroCopy.supportingTop}</span>
+              <span className="mt-1.5 block whitespace-nowrap">{heroCopy.supportingBottom}</span>
             </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.45 }}
-              className="mt-6 flex flex-col gap-5 sm:mx-auto sm:max-w-max sm:flex-row sm:gap-8 md:hidden"
-            >
-              <Link
-                href="/experiences"
-                className="group inline-flex flex-col items-center text-center hover:-translate-y-0.5 md:items-start md:text-left"
-              >
-                <span className="flex items-center gap-3 whitespace-nowrap text-[15px] font-bold uppercase tracking-[0.06em] text-[#f0ece4] group-hover:text-[#d7be87]">
-                  <span>Celebrate Experience</span>
-                  <span aria-hidden className="text-[16px] leading-none">
-                    &rarr;
-                  </span>
-                </span>
-                <span className="mt-1 text-[12px] font-bold uppercase tracking-[0.16em] text-[#ddd3bf] group-hover:text-[#d7be87]">
-                  Immersion and Artefacts
-                </span>
-              </Link>
-              <Link
-                href="/lifestyle"
-                className="group inline-flex flex-col items-center text-center hover:-translate-y-0.5 md:items-start md:text-left"
-              >
-                <span className="flex items-center gap-3 text-[15px] font-bold uppercase tracking-[0.06em] text-[#f0ece4] group-hover:text-[#2e4a36]">
-                  <span>Curate Lifestyle</span>
-                  <span aria-hidden className="text-[16px] leading-none">
-                    &rarr;
-                  </span>
-                </span>
-                <span className="mt-1 text-[12px] font-bold uppercase tracking-[0.16em] text-[#ddd3bf] group-hover:text-[#2e4a36]">
-                  Habits and Objects
-                </span>
-              </Link>
-            </motion.div>
           </div>
         </motion.div>
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut", delay: 0.45 }}
-        className="absolute right-[max(20px,4.5vw)] top-[50%] z-[4] hidden max-w-[460px] -translate-y-1/2 flex-col items-start gap-6 text-left md:flex xl:right-[max(28px,5.5vw)]"
-      >
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.38 }}
-          className="hidden max-w-[380px] text-[15px] font-medium leading-[1.65] md:block"
-          style={{ color: "#FFF8EE", textShadow: "0 2px 22px rgba(0,0,0,0.46)" }}
-        >
-          Design-led scent, tactile, and visual objects inspired by literature - paired with research-informed wellness
-          rituals and cultural immersion experiences rooted in Bengal.
-        </motion.p>
-        <div className="flex flex-row items-end gap-7 text-left">
-        <Link
-          href="/experiences"
-          className="group inline-flex flex-col items-start text-left hover:-translate-y-0.5"
-        >
-          <span className="flex items-center gap-3 whitespace-nowrap text-[15px] font-bold uppercase tracking-[0.06em] text-[#fff8ee] group-hover:text-[#ecd39b]">
-            <span>Celebrate Experience</span>
-            <span aria-hidden className="text-[16px] leading-none">
-              &rarr;
-            </span>
-          </span>
-          <span className="mt-1 text-[12px] font-bold uppercase tracking-[0.16em] text-[#f1e2c1] group-hover:text-[#ecd39b]">
-            Immersion and Artefacts
-          </span>
-        </Link>
-        <Link
-          href="/lifestyle"
-          className="group inline-flex flex-col items-start text-left hover:-translate-y-0.5"
-        >
-          <span className="flex items-center gap-3 whitespace-nowrap text-[15px] font-bold uppercase tracking-[0.06em] text-[#fff8ee] group-hover:text-[#d7e5cf]">
-            <span>Curate Lifestyle</span>
-            <span aria-hidden className="text-[16px] leading-none">
-              &rarr;
-            </span>
-          </span>
-          <span className="mt-1 text-[12px] font-bold uppercase tracking-[0.16em] text-[#e4eadf] group-hover:text-[#d7e5cf]">
-            Habits and Objects
-          </span>
-        </Link>
-        </div>
-      </motion.div>
 
       <style jsx>{`
         @keyframes seijaku-kenburns {
@@ -233,37 +115,7 @@ export default function HeroBanner({ heroRef }: HeroBannerProps) {
             transform: scale(1);
           }
           100% {
-            transform: scale(1.07);
-          }
-        }
-
-        @keyframes seijaku-diffuser-glow {
-          0% {
-            opacity: 0.54;
-            transform: scale(1) translate3d(0, 0, 0);
-          }
-          50% {
-            opacity: 0.8;
-            transform: scale(1.06) translate3d(0.4%, -0.6%, 0);
-          }
-          100% {
-            opacity: 0.54;
-            transform: scale(1) translate3d(0, 0, 0);
-          }
-        }
-
-        @keyframes seijaku-oil-glimmer {
-          0% {
-            opacity: 0.46;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.74;
-            transform: scale(1.08);
-          }
-          100% {
-            opacity: 0.46;
-            transform: scale(1);
+            transform: scale(1.045);
           }
         }
       `}</style>

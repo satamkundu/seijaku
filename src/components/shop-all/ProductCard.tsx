@@ -25,7 +25,7 @@ export default function ProductCard({ item }: ProductCardProps) {
       <div className="relative aspect-[4/3] overflow-hidden bg-[#ddd1c1]">
         <Image
           src={item.image}
-          alt={item.title}
+          alt={item.imageAlt ?? item.title}
           fill
           sizes="(min-width: 1200px) 28vw, (min-width: 768px) 44vw, 100vw"
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
@@ -64,3 +64,4 @@ export default function ProductCard({ item }: ProductCardProps) {
     </Link>
   );
 }
+

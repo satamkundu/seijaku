@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
+
 const pathways = [
   {
     title: "Objects of Stillness",
@@ -7,7 +9,7 @@ const pathways = [
       "Design-led scent and tactile objects crafted to anchor everyday spaces in quiet intention and sensory depth.",
     detail: "Curated ritual boxes",
     cta: "Enter Objects",
-    href: "/lifestyle",
+    href: canonicalShopRoutes.lifestyle,
     panelLabel: "Curated ritual boxes",
     rotation: "-1.75deg",
   },
@@ -39,9 +41,7 @@ export default function ThreePathways() {
       <div className="page-container">
         <div className="max-w-[680px]">
           <p className="text-[10px] uppercase tracking-[0.22em] text-[#a57f5b]">Every Practice Begins Somewhere.</p>
-          <h2 className="mt-4 text-[#1e1d1a]">
-            Three Pathways Into the Seijaku Experience
-          </h2>
+          <h2 className="mt-4 text-[#1e1d1a]">Three Pathways Into the Seijaku Experience</h2>
           <p className="mt-4 max-w-[620px] text-[16px] leading-[1.8] text-[#5c665e]">
             Objects for the everyday. Rituals for continuity. Retreats for immersion.
           </p>
@@ -60,9 +60,7 @@ export default function ThreePathways() {
                   style={{ transform: `rotate(${pathway.rotation})` }}
                 />
                 <div className="absolute left-3 top-2 z-10 flex items-center gap-1.5 text-[12px] text-[#383838]">
-                  <span aria-hidden className="text-[12px] leading-none">
-                    [ ]
-                  </span>
+                  <span aria-hidden className="text-[12px] leading-none">[ ]</span>
                   <span>{pathway.panelLabel}</span>
                 </div>
               </div>
@@ -70,9 +68,7 @@ export default function ThreePathways() {
               <div className="h-px w-[76%] bg-[#d4c2a1]" />
 
               <div className="px-7 pb-8 pt-8">
-                <h3 className="font-serif text-[24px] leading-[1.2] tracking-[-0.02em] text-[#312a24]">
-                  {pathway.title}
-                </h3>
+                <h3 className="font-serif text-[24px] leading-[1.2] tracking-[-0.02em] text-[#312a24]">{pathway.title}</h3>
                 <p className="mt-4 max-w-[30ch] text-[15px] leading-[1.85] text-[#746d66]">{pathway.description}</p>
                 <p className="mt-5 text-[11px] uppercase tracking-[0.16em] text-[#aa7c57]">{pathway.detail}</p>
                 <Link
@@ -80,9 +76,7 @@ export default function ThreePathways() {
                   className="mt-7 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-[#5b665e] transition-colors duration-200 hover:text-[#1f2a21]"
                 >
                   <span>{pathway.cta}</span>
-                  <span aria-hidden className="text-[14px] leading-none">
-                    &rarr;
-                  </span>
+                  <span aria-hidden className="text-[14px] leading-none">&rarr;</span>
                 </Link>
               </div>
             </article>

@@ -1,16 +1,17 @@
-"use client";
+﻿"use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useRef } from "react";
 
-import HemantaQuoteStrip from "@/src/components/HemantaQuoteStrip";
+import BrowseWorldSection from "@/src/components/BrowseWorldSection";
+import CraftProofSection from "@/src/components/CraftProofSection";
 import HeroBanner from "@/src/components/HeroBanner";
-import RetreatPreviewBanner from "@/src/components/RetreatPreviewBanner";
+import HowSeijakuWorks from "@/src/components/HowSeijakuWorks";
+import JournalPreviewSection from "@/src/components/JournalPreviewSection";
 import RitualRoom from "@/src/components/RitualRoom";
+import RitualSetsSection from "@/src/components/RitualSetsSection";
 import SeasonalDropBanner from "@/src/components/SeasonalDropBanner";
 import SeasonalStoryStrip from "@/src/components/SeasonalStoryStrip";
-import SeasonObjects from "@/src/components/SeasonObjects";
-import ThreePathways from "@/src/components/ThreePathways";
 
 export default function HomePage() {
   const heroRef = useRef<HTMLElement | null>(null);
@@ -51,10 +52,19 @@ export default function HomePage() {
     <main className="home-story min-h-screen bg-[#F3EFE7] text-[#3a3a3a]">
       <HeroBanner heroRef={heroRef} />
       <motion.div className="relative z-20 home-section-shell home-bridge-warm" data-home-reveal style={{ y: sectionY, opacity: sectionOpacity }}>
-        <ThreePathways />
+        <BrowseWorldSection />
       </motion.div>
       <div className="home-section-shell home-bridge-soft" data-home-reveal>
+        <HowSeijakuWorks />
+      </div>
+      <div className="home-section-shell home-bridge-soft" data-home-reveal>
+        <RitualSetsSection />
+      </div>
+      <div className="home-section-shell home-bridge-soft" data-home-reveal>
         <RitualRoom />
+      </div>
+      <div className="home-section-shell home-bridge-warm" data-home-reveal>
+        <CraftProofSection />
       </div>
       <div className="home-section-shell home-bridge-soft" data-home-reveal>
         <SeasonalStoryStrip />
@@ -62,14 +72,8 @@ export default function HomePage() {
       <div className="home-section-shell home-bridge-warm" data-home-reveal>
         <SeasonalDropBanner />
       </div>
-      <div className="home-section-shell home-bridge-calm" data-home-reveal>
-        <RetreatPreviewBanner />
-      </div>
       <div className="home-section-shell home-bridge-soft" data-home-reveal>
-        <HemantaQuoteStrip />
-      </div>
-      <div className="home-section-shell" data-home-reveal>
-        <SeasonObjects />
+        <JournalPreviewSection />
       </div>
     </main>
   );
