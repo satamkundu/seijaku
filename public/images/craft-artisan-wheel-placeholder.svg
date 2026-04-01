@@ -1,0 +1,51 @@
+﻿<svg width="1600" height="1100" viewBox="0 0 1600 1100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="250" y1="120" x2="1370" y2="980" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3C2E27"/>
+      <stop offset="0.48" stop-color="#2E231E"/>
+      <stop offset="1" stop-color="#241B17"/>
+    </linearGradient>
+    <radialGradient id="glowLeft" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(328 286) rotate(27.4) scale(428 295)">
+      <stop stop-color="#A67A53" stop-opacity="0.34"/>
+      <stop offset="0.5" stop-color="#A67A53" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#A67A53" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowWheel" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1170 664) rotate(90) scale(256 300)">
+      <stop stop-color="#E5BE88" stop-opacity="0.18"/>
+      <stop offset="0.5" stop-color="#E5BE88" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#E5BE88" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softBlur" x="662" y="225" width="908" height="714" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="mist" x="-40" y="-40" width="1680" height="1180" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="24"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+  <g filter="url(#mist)">
+    <ellipse cx="318" cy="308" rx="312" ry="188" fill="url(#glowLeft)"/>
+    <ellipse cx="1198" cy="652" rx="278" ry="224" fill="url(#glowWheel)"/>
+  </g>
+  <g opacity="0.16" stroke="#E8D9C5" stroke-width="2">
+    <circle cx="1182" cy="662" r="230"/>
+    <circle cx="1182" cy="662" r="182"/>
+    <circle cx="1182" cy="662" r="132"/>
+  </g>
+  <g opacity="0.18" fill="#E1C8A3">
+    <ellipse cx="1048" cy="270" rx="186" ry="94"/>
+    <ellipse cx="1346" cy="410" rx="118" ry="70"/>
+  </g>
+  <g filter="url(#softBlur)">
+    <path d="M1094 520C1130 472 1176 450 1232 454C1296 458 1348 494 1386 560C1414 608 1422 656 1410 704C1396 758 1360 802 1302 836C1246 868 1182 886 1110 890C1048 892 996 878 954 848C926 828 912 798 912 756C912 722 922 694 942 672C966 644 1002 624 1050 612C1074 604 1094 592 1110 576C1118 566 1120 550 1116 528C1112 524 1104 522 1094 520Z" fill="#D9C2A0" fill-opacity="0.22"/>
+  </g>
+  <g>
+    <path d="M952 512C986 470 1028 448 1078 446C1132 444 1178 464 1218 506C1246 534 1266 570 1278 614C1286 646 1288 676 1284 704C1278 752 1254 796 1212 836C1170 876 1118 900 1056 908C1002 912 956 900 918 872C890 852 874 822 870 782C866 750 872 722 888 698C906 670 934 648 972 632C998 620 1014 604 1020 584C1026 560 1022 536 1008 512C992 510 974 510 952 512Z" fill="#F0E3CF" fill-opacity="0.72"/>
+    <path d="M1024 488C1056 540 1084 590 1108 638C1134 690 1146 736 1144 776C1144 816 1128 848 1096 872C1060 900 1018 906 970 890C940 880 914 862 892 836C872 810 862 780 862 746C862 706 876 672 904 644C930 618 968 598 1018 584C1028 548 1030 516 1024 488Z" fill="#C7AA84" fill-opacity="0.46"/>
+    <path d="M1184 470C1232 426 1288 408 1352 416C1412 424 1460 454 1496 506C1522 542 1536 582 1538 626C1540 670 1528 706 1502 734C1478 760 1442 774 1394 776C1348 778 1306 768 1268 746C1228 724 1196 696 1172 662C1150 630 1136 602 1130 578C1124 554 1128 532 1142 512C1152 496 1166 482 1184 470Z" fill="#E8D6BC" fill-opacity="0.54"/>
+    <path d="M1106 620C1148 606 1192 606 1238 620" stroke="#FFF8EF" stroke-opacity="0.18" stroke-width="10" stroke-linecap="round"/>
+    <path d="M1202 568C1238 554 1274 552 1310 562" stroke="#FFF8EF" stroke-opacity="0.14" stroke-width="8" stroke-linecap="round"/>
+    <path d="M952 882C1024 848 1090 830 1150 828C1222 826 1292 846 1360 888" stroke="#EAC98F" stroke-opacity="0.42" stroke-width="10" stroke-linecap="round"/>
+    <path d="M1002 926C1060 904 1112 894 1158 894C1212 894 1268 908 1326 936" stroke="#EAC98F" stroke-opacity="0.26" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 const ritualSteps = [
   {
@@ -17,7 +17,7 @@ const ritualSteps = [
 
 export default function RitualRoom() {
   return (
-    <section className="section-primary bg-[#F3EFE7]">
+    <section id="daily-ritual-room" className="section-primary bg-[#F3EFE7]">
       <div className="page-container">
         <div className="section-divider grid gap-6 pt-12">
           <div className="grid gap-6 rounded-[30px] border border-[#D8CEC1] bg-[#FAF7F1] p-5 shadow-[0_10px_30px_rgba(70,50,25,0.035)] lg:grid-cols-[1.12fr_0.88fr] sm:p-7">
@@ -77,3 +77,4 @@ export default function RitualRoom() {
     </section>
   );
 }
+

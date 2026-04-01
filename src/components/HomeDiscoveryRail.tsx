@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -42,11 +42,10 @@ export default function HomeDiscoveryRail() {
   return (
     <nav
       aria-label="Primary sections"
-      className={`border-b transition-all duration-300 ${
-        isHidden
-          ? "pointer-events-none -translate-y-full opacity-0"
-          : "translate-y-0 border-transparent bg-transparent opacity-100 hover:border-black/6 hover:bg-[rgba(236,229,216,0.96)] hover:backdrop-blur-[10px] focus-within:border-black/6 focus-within:bg-[rgba(236,229,216,0.96)] focus-within:backdrop-blur-[10px]"
-      }`}
+      className={[
+        "border-b border-[rgba(76,67,57,0.08)] bg-[rgba(236,229,216,0.98)] shadow-[0_8px_24px_rgba(28,22,18,0.06)] backdrop-blur-[12px] transition-transform duration-300",
+        isHidden ? "pointer-events-none -translate-y-full" : "translate-y-0",
+      ].join(" ")}
     >
       <div className="page-container py-3">
         <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:overflow-visible">

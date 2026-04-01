@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { canonicalShopRoutes, type ShopProduct } from "@/src/lib/shopAllItems";
@@ -12,6 +13,7 @@ type TextileProductCardProps = {
   categoryLabel: string;
   description: string;
   pairingLabel?: string;
+  pairingHref?: string;
   selectorLabel?: string;
   selectorOptions?: string[];
   selectedOption?: string;
@@ -24,6 +26,7 @@ export default function TextileProductCard({
   categoryLabel,
   description,
   pairingLabel,
+  pairingHref,
   selectorLabel,
   selectorOptions,
   selectedOption = "",
@@ -64,10 +67,20 @@ export default function TextileProductCard({
         <p className="mt-4 max-w-[30ch] text-[14px] leading-[1.92] text-[#5f574d]">{description}</p>
 
         {pairingLabel ? (
-          <div className="mt-5 mb-1 inline-flex w-fit items-center gap-2 rounded-full bg-[rgba(133,118,95,0.12)] px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-[#35513e]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#35513e]/70" aria-hidden="true" />
-            <span>{pairingLabel}</span>
-          </div>
+          pairingHref ? (
+            <Link
+              href={pairingHref}
+              className="mt-5 mb-1 inline-flex w-fit items-center gap-2 rounded-full bg-[rgba(133,118,95,0.12)] px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-[#35513e] transition-colors duration-200 hover:bg-[rgba(133,118,95,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8c7b68] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f1e8]"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[#35513e]/70" aria-hidden="true" />
+              <span>{pairingLabel}</span>
+            </Link>
+          ) : (
+            <div className="mt-5 mb-1 inline-flex w-fit items-center gap-2 rounded-full bg-[rgba(133,118,95,0.12)] px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-[#35513e]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#35513e]/70" aria-hidden="true" />
+              <span>{pairingLabel}</span>
+            </div>
+          )
         ) : null}
 
         <p className="mt-5 text-[14px] text-[#312b25]">{item.priceLabel}</p>

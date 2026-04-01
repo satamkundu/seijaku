@@ -6,6 +6,7 @@ export type TextileDisplayItem = {
   product: ShopProduct;
   description: string;
   pairingLabel?: string;
+  pairingHref?: string;
   selectorLabel?: string;
   selectorOptions?: string[];
 };
@@ -44,6 +45,7 @@ export default function TextileCategorySection({
             categoryLabel="Modal Silk Textile"
             description={item.description}
             pairingLabel={item.pairingLabel}
+            pairingHref={item.pairingHref}
             selectorLabel={item.selectorLabel}
             selectorOptions={item.selectorOptions}
             selectedOption={selectedOptions[item.product.slug] ?? ""}

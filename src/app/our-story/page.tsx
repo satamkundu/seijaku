@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 
 import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
@@ -67,21 +67,18 @@ const deliberateLines = [
 
 const heldItems = ["Literature", "Material", "Scent", "Season"];
 
-const testimonials = [
+const testimonialVideos = [
   {
     quote: "A Seijaku object changes the room without announcing itself.",
-    name: "A. Chatterjee",
-    title: "Reader and Collector",
+    label: "Video placeholder 01",
   },
   {
     quote: "The ritual felt less like an event and more like a return to attention.",
-    name: "R. Sen",
-    title: "Program Participant",
+    label: "Video placeholder 02",
   },
   {
     quote: "Everything carries a sense of thought, season, and lived use.",
-    name: "M. Dutta",
-    title: "Gift Recipient",
+    label: "Video placeholder 03",
   },
 ];
 
@@ -172,13 +169,27 @@ export default function OurStoryPage() {
             <SectionHeading>In Their Words</SectionHeading>
           </div>
           <div className="mt-10 grid gap-10 md:grid-cols-2 xl:grid-cols-3 xl:gap-12">
-            {testimonials.map((item) => (
-              <article key={item.name} className="max-w-[34ch]">
-                <p className="font-serif text-[26px] leading-[1.46] tracking-[-0.02em] text-[#1c1c1c] sm:text-[28px]">
-                  &ldquo;{item.quote}&rdquo;
-                </p>
-                <p className="mt-6 text-[14px] leading-[1.8] text-[#4f4943]">{item.name}</p>
-                <p className="text-[14px] font-light leading-[1.8] text-[#7a7268]">{item.title}</p>
+            {testimonialVideos.map((item) => (
+              <article key={item.label} className="group">
+                <div className="relative overflow-hidden rounded-[24px] border border-[#d8cec1] bg-[#fcf8f2] shadow-[0_18px_48px_rgba(45,34,22,0.08)]">
+                  <div className="relative aspect-[4/5] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9)_0%,rgba(245,238,229,0.9)_46%,rgba(233,224,212,0.95)_100%)]">
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.14)_0%,rgba(84,67,49,0.08)_100%)]" />
+                    <div className="absolute left-5 top-5 rounded-full border border-[#d7ccbd] bg-white/70 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-[#8b7f70] backdrop-blur-sm">
+                      {item.label}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
+                      <p className="max-w-[18ch] font-serif text-[clamp(24px,2.7vw,34px)] leading-[1.28] tracking-[-0.02em] text-[#2c241c]">
+                        &ldquo;{item.quote}&rdquo;
+                      </p>
+                    </div>
+                    <div className="absolute bottom-5 left-5 flex items-center gap-3 text-[#6d6255]">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#cdbfae] bg-[#fffaf4] text-[13px] uppercase tracking-[0.2em]">
+                        Play
+                      </span>
+                      <span className="text-[11px] uppercase tracking-[0.28em] text-[#8b7f70]">Video testimonial</span>
+                    </div>
+                  </div>
+                </div>
               </article>
             ))}
           </div>
@@ -197,14 +208,14 @@ export default function OurStoryPage() {
           </div>
 
           <div className="mt-12 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:gap-10">
-            <Link href={canonicalShopRoutes.lifestyle} className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
-              Explore Objects of Stillness
+            <Link href={canonicalShopRoutes.shopAll} className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
+              Explore our Collection
             </Link>
-            <Link href="/ritual" className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
-              Enter Guided Rituals
+            <Link href="/#daily-ritual-room" className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
+              Complete a Daily Ritual
             </Link>
-            <Link href="/experiences" className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
-              View Immersive Retreats
+            <Link href="/a-seijaku-life" className="text-[13px] font-normal tracking-[0.05em] text-[#2e4a36] hover:underline">
+              Learn about crafts
             </Link>
           </div>
         </div>

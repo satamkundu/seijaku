@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
 
@@ -23,7 +23,6 @@ const infoLinks = [
   { label: "Terms & Agreements", href: "#" },
   { label: "Shipping & Delivery", href: "#" },
   { label: "FAQs", href: "#" },
-  { label: "lifeatseijaku@gmail.com", href: "mailto:lifeatseijaku@gmail.com" },
 ];
 
 const followGroups = [
@@ -148,6 +147,21 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
+
+            <div className="mt-8 space-y-2 font-serif text-[17px] leading-[1.55] tracking-[-0.01em] text-[#2a241d]">
+              <a href="mailto:lifeatseijaku@gmail.com" className="block transition-opacity duration-200 hover:opacity-65">
+                lifeatseijaku@gmail.com
+              </a>
+              <a href="tel:+919432804418" className="block transition-opacity duration-200 hover:opacity-65">
+                91-9432804418
+              </a>
+            </div>
+
+            <div className="mt-8 font-serif text-[16px] leading-[1.7] tracking-[-0.01em] text-[#5b5145]">
+              <p className="text-[#2a241d]">Registered Office:</p>
+              <p>2A, F 154, B.P. Township,</p>
+              <p>Kolkata 700094 India</p>
+            </div>
           </div>
         </section>
 

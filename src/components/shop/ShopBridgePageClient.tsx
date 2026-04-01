@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+import Link from "next/link";
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -87,9 +89,18 @@ function DokraBroochRow({
             {item.shortDescription ?? "A dokra brooch shaped for quiet daily ritual."}
           </p>
           {item.ritualTag ? (
-            <p className="mt-5 inline-flex rounded-full border border-[rgba(116,99,77,0.14)] bg-[#F5F1EA] px-3.5 py-2 text-[10px] uppercase tracking-[0.2em] text-[#6d604f]">
-              {item.ritualTag}
-            </p>
+            item.ritualTagHref ? (
+              <Link
+                href={item.ritualTagHref}
+                className="mt-5 inline-flex rounded-full border border-[rgba(116,99,77,0.14)] bg-[#F5F1EA] px-3.5 py-2 text-[10px] uppercase tracking-[0.2em] text-[#6d604f] transition-colors duration-200 hover:bg-[#efe7db] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8c7b68] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f1e8]"
+              >
+                {item.ritualTag}
+              </Link>
+            ) : (
+              <p className="mt-5 inline-flex rounded-full border border-[rgba(116,99,77,0.14)] bg-[#F5F1EA] px-3.5 py-2 text-[10px] uppercase tracking-[0.2em] text-[#6d604f]">
+                {item.ritualTag}
+              </p>
+            )
           ) : null}
           <p className="mt-5 text-[15px] text-[#5f584f]">{item.priceLabel}</p>
           <div className="mt-7 flex items-center gap-5">
@@ -385,7 +396,7 @@ export default function ShopBridgePageClient({ page, products }: ShopBridgePageC
               </PerfumeScrollStrip>
               <div className={`${perfumeContainerClasses} pt-14 text-center`}>
                 <p className="mx-auto max-w-[760px] font-serif text-[32px] leading-[1.4] tracking-[-0.02em] text-[#746b60] md:text-[38px]">
-                  This is an evolving series. Future compositions will extend each state — Spirit 02, Body 02, Mind 02.
+                  This is an evolving series. Future compositions will extend each state â€” Spirit 02, Body 02, Mind 02.
                 </p>
               </div>
             </section>
@@ -558,4 +569,7 @@ export default function ShopBridgePageClient({ page, products }: ShopBridgePageC
     </>
   );
 }
+
+
+
 

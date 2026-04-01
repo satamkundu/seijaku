@@ -1,4 +1,4 @@
-export const canonicalShopRoutes = {
+﻿export const canonicalShopRoutes = {
   shopAll: "/shop",
   lifestyle: "/shop/lifestyle",
   perfumes: "/shop/perfumes",
@@ -47,6 +47,7 @@ export type ShopProduct = {
   ctaLabel?: string;
   status?: string;
   ritualTag?: string;
+  ritualTagHref?: string;
 };
 
 export type ShopBridgePageConfig = {
@@ -723,7 +724,8 @@ export const shopProducts: ShopProduct[] = [
     shortDescription: "A folding gesture cast in metal, opening space where there was none.",
     longDescription:
       "A dokra brooch shaped around the handfan as a gesture of opening. The form sits close to cloth, lapel, or soft bag surfaces, carrying a feeling of pause rather than display.",
-    ritualTag: "Part of the Unfold Ritual Set",
+    ritualTag: "Part of Unfold Ritual Set",
+    ritualTagHref: "/shop/lifestyle#unfold-ritual-box-01",
     price: 2850,
     priceLabel: "INR 2,850",
     image: "/images/japanese fan hero Our Story.png",
@@ -743,7 +745,8 @@ export const shopProducts: ShopProduct[] = [
     shortDescription: "A wider spread of air and intention, carried as a quiet metal form.",
     longDescription:
       "This first Bengal handfan brooch carries a fuller silhouette and a wider visual breath. It is designed for garments, wraps, and ritual textiles that invite a gentler outward presence.",
-    ritualTag: "Part of the Listen Ritual Set",
+    ritualTag: "Part of Unfold Ritual Set",
+    ritualTagHref: "/shop/lifestyle#unfold-ritual-box-01",
     price: 3050,
     priceLabel: "INR 3,050",
     image: "/images/Seasonal Drop Raja-Kundo.jpg",
@@ -763,7 +766,8 @@ export const shopProducts: ShopProduct[] = [
     shortDescription: "A quieter variation, shaped for cloth, pause, and everyday gesture.",
     longDescription:
       "A softer variation in the handfan language, this brooch is shaped for slower dressing rituals and quieter moments of return. Its cast texture keeps the object tactile and unhurried.",
-    ritualTag: "Part of the Listen Ritual Set",
+    ritualTag: "Part of Unfold Ritual Set",
+    ritualTagHref: "/shop/lifestyle#unfold-ritual-box-01",
     price: 2950,
     priceLabel: "INR 2,950",
     image: "/images/Seasonal Drop Nandini Raktakarabi.jpg",
@@ -783,7 +787,8 @@ export const shopProducts: ShopProduct[] = [
     shortDescription: "A symbol of beginning, cast as a small marker of presence and return.",
     longDescription:
       "The conch form suggests calling inward before speaking outward. Worn on cloth or kept near a daily surface, it marks beginnings with a steadier, more reflective tempo.",
-    ritualTag: "Part of the Listen Ritual Set",
+    ritualTag: "Part of Listen Ritual Set",
+    ritualTagHref: "/shop/lifestyle#listen-ritual-box-02",
     price: 3150,
     priceLabel: "INR 3,150",
     image: "/images/Seasonal Drop Listen before shaping.jpg",
@@ -803,7 +808,8 @@ export const shopProducts: ShopProduct[] = [
     shortDescription: "A held resonance, marking transitions and pause.",
     longDescription:
       "Temple Bell Brooch is shaped as a small marker of transition. Its presence is less ornamental than rhythmic, giving garments and ritual corners a subtle sense of arrival and pause.",
-    ritualTag: "Part of the Listen Ritual Set",
+    ritualTag: "Part of Attune Ritual Set",
+    ritualTagHref: "/shop/lifestyle#attune-ritual-box-03",
     price: 3250,
     priceLabel: "INR 3,250",
     image: "/images/Seasonal Drop Rishi Chhatim.jpg",
@@ -1284,6 +1290,10 @@ export function getShopUseCases() {
     )
   );
 }
+
+
+
+
 
 
 

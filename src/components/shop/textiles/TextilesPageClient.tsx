@@ -29,6 +29,9 @@ const pocketSquareSlugs = [
 ] as const;
 
 const colourOptions = ["Forest Green", "Red Earth"];
+const breathOfPinesHref = `${canonicalShopRoutes.perfumes}?item=spirit-01-breath-of-pines`;
+const summerHeldCloseHref = `${canonicalShopRoutes.perfumes}?item=body-01-summer-held-close`;
+const morningDeskHref = `${canonicalShopRoutes.perfumes}?item=mind-01-the-morning-desk`;
 
 export default function TextilesPageClient({ products }: TextilesPageClientProps) {
   const pathname = usePathname();
@@ -62,7 +65,8 @@ export default function TextilesPageClient({ products }: TextilesPageClientProps
         items.push({
           product,
           description: "A softened modal silk scarf inspired by pine shade, quiet air, and contemplative movement.",
-          pairingLabel: "Suggested pairing: Breath of Pines",
+          pairingLabel: "Suggested pairing: Breath of Pines Perfume",
+          pairingHref: breathOfPinesHref,
         });
         continue;
       }
@@ -72,7 +76,8 @@ export default function TextilesPageClient({ products }: TextilesPageClientProps
           product,
           description:
             "A modal silk scarf shaped by warm light, city softness, and the gentle brightness of an Indian summer.",
-          pairingLabel: "Suggested pairing: Summer, Held Close",
+          pairingLabel: "Suggested pairing: Summer, Held Close Perfume",
+          pairingHref: summerHeldCloseHref,
         });
         continue;
       }
@@ -81,7 +86,8 @@ export default function TextilesPageClient({ products }: TextilesPageClientProps
         product,
         description:
           "A calm, modern modal silk scarf with a grounded palette suited to desks, early hours, and quiet momentum.",
-        pairingLabel: "Suggested pairing: The Morning Desk",
+        pairingLabel: "Suggested pairing: The Morning Desk Perfume",
+        pairingHref: morningDeskHref,
       });
     }
 
@@ -111,7 +117,8 @@ export default function TextilesPageClient({ products }: TextilesPageClientProps
           product,
           description:
             "A modal silk pocket square carrying a cool, wooded calm for formalwear, gifting, and everyday detail.",
-          pairingLabel: "Suggested pairing: Breath of Pines",
+          pairingLabel: "Suggested pairing: Breath of Pines Perfume",
+          pairingHref: breathOfPinesHref,
         });
         continue;
       }
@@ -121,7 +128,8 @@ export default function TextilesPageClient({ products }: TextilesPageClientProps
           product,
           description:
             "A lighter, sun-touched modal silk pocket square inspired by summer air, movement, and lived warmth.",
-          pairingLabel: "Suggested pairing: Summer, Held Close",
+          pairingLabel: "Suggested pairing: Summer, Held Close Perfume",
+          pairingHref: summerHeldCloseHref,
         });
         continue;
       }
@@ -130,7 +138,8 @@ export default function TextilesPageClient({ products }: TextilesPageClientProps
         product,
         description:
           "A grounded, elegant modal silk pocket square suited to work rituals, gifting, and subtle evening dressing.",
-        pairingLabel: "Suggested pairing: The Morning Desk",
+        pairingLabel: "Suggested pairing: The Morning Desk Perfume",
+        pairingHref: morningDeskHref,
       });
     }
 
