@@ -27,7 +27,7 @@ type FilterPanelProps = {
   compact?: boolean;
 };
 
-const typeOptions: ShopItemType[] = ["Box / Set", "Individual Object", "Seasonal Drop", "Program", "Retreat"];
+const typeOptions: ShopItemType[] = ["Ritual Box", "Perfume", "Scarf / Square", "Diffuser", "Dokra Ornament", "Program", "Retreat"];
 const audienceOptions: ShopAudience[] = ["Elderly", "Adults", "Teenagers", "All Ages"];
 const availabilityOptions: ShopAvailability[] = [
   "In Stock",
@@ -38,7 +38,7 @@ const availabilityOptions: ShopAvailability[] = [
   "Waitlist",
 ];
 const collectionOptions: ShopCollection[] = ["Hemanta", "Seasonal Drop", "Core Collection"];
-const formatOptions: ShopFormat[] = ["Physical", "Digital", "In-Person"];
+const formatOptions: ShopFormat[] = ["Physical", "In-Person"];
 
 function FilterSection({
   title,

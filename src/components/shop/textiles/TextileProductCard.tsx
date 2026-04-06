@@ -111,7 +111,17 @@ export default function TextileProductCard({
             type="button"
             disabled={!isActionReady}
             onClick={() => {
-              beginCheckout(item.slug, hasSelector ? selectedOption : null);
+              beginCheckout(
+                item.slug,
+                hasSelector
+                  ? {
+                      label: selectedOption,
+                      options: {
+                        [selectorLabel ?? "selection"]: selectedOption,
+                      },
+                    }
+                  : undefined
+              );
               router.push(canonicalShopRoutes.checkout);
             }}
             className="relative z-[4] inline-flex min-h-[42px] cursor-pointer items-center justify-center rounded-full bg-[#294536] px-5 py-2.5 text-[10px] font-medium uppercase tracking-[0.22em] text-[#f4efe8] transition-all duration-200 hover:bg-[#21382c] disabled:cursor-not-allowed disabled:bg-[#a8a095] disabled:text-[#f4efe8]/90"

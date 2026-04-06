@@ -1,0 +1,35 @@
+import fs from "node:fs";
+import path from "node:path";
+import cors from "cors";
+import express from "express";
+import morgan from "morgan";
+
+import { env } from "./config.js";
+import { adminRouter } from "./routes/admin.js";
+import { publicRouter } from "./routes/public.js";
+import { errorMiddleware } from "./utils/http.js";
+
+export const app = express();
+
+app.use(
+  cors({
+    origin: env.CORS_ORIGIN ? env.CORS_ORIGIN.split(",").map((entry) => entry.trim()) : true,
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: "1mb" }));
+app.use(morgan("dev"));
+
+if (env.STORAGE_DRIVER === "local") {
+  const uploadDir = path.resolve(process.cwd(), env.LOCAL_UPLOAD_DIR);
+  fs.mkdirSync(uploadDir, { recursive: true });
+  app.use("/uploads", express.static(uploadDir));
+}
+
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.use(publicRouter);
+app.use("/admin", adminRouter);
+app.use(errorMiddleware);

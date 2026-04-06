@@ -31,11 +31,13 @@ function SelectField<T extends string>({
   value,
   onChange,
   options,
+  includeAll = true,
 }: {
   label: string;
   value: T | "All";
   onChange: (value: T | "All") => void;
   options: T[];
+  includeAll?: boolean;
 }) {
   return (
     <label className="flex min-w-[170px] flex-col gap-2.5 text-[9px] uppercase tracking-[0.28em] text-[#7b7064]">
@@ -46,7 +48,7 @@ function SelectField<T extends string>({
           onChange={(event) => onChange(event.target.value as T | "All")}
           className="h-[54px] w-full appearance-none rounded-[22px] border border-[rgba(111,100,86,0.14)] bg-[linear-gradient(180deg,#fcfaf5_0%,#f3ede4_100%)] px-5 pr-12 text-[11px] font-medium uppercase tracking-[0.18em] text-[#342d26] shadow-[inset_0_1px_0_rgba(255,255,255,0.78)] outline-none transition-all duration-200 hover:border-[rgba(96,86,74,0.22)] hover:bg-[#fcf8f2] focus:border-[#8c7b68] focus:bg-[#fcfaf6] focus:shadow-[0_0_0_3px_rgba(175,160,137,0.14)]"
         >
-          <option value="All">All</option>
+          {includeAll ? <option value="All">All</option> : null}
           {options.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -110,8 +112,13 @@ export default function ShopToolbar({
             <SelectField
               label="Sort"
               value={sortBy}
-              onChange={onSortChange}
+              onChange={(value) => {
+                if (value !== "All") {
+                  onSortChange(value);
+                }
+              }}
               options={["Recommended", "Newest", "Price low to high", "Price high to low"]}
+              includeAll={false}
             />
 
             <button

@@ -83,7 +83,12 @@ export default function DiffuserProductCard({
             type="button"
             disabled={!selectedOption}
             onClick={() => {
-              beginCheckout(item.slug, selectedOption);
+              beginCheckout(item.slug, {
+                label: selectedOption,
+                options: {
+                  [variantLabel]: selectedOption,
+                },
+              });
               router.push(canonicalShopRoutes.checkout);
             }}
             className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-[#294536] px-5 py-2.5 text-[10px] font-medium uppercase tracking-[0.22em] text-[#f4efe8] transition-all duration-200 hover:bg-[#21382c] disabled:cursor-not-allowed disabled:bg-[#a8a095] disabled:text-[#f4efe8]/90"

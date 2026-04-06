@@ -15,7 +15,10 @@ export default function CollectionPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { collection } = useShopState();
-  const items = useMemo(() => collection.map((slug) => getShopProductBySlug(slug)).filter(Boolean), [collection]);
+  const items = useMemo(
+    () => collection.map((slug) => getShopProductBySlug(slug)).filter((item): item is NonNullable<ReturnType<typeof getShopProductBySlug>> => Boolean(item)),
+    [collection]
+  );
   const selectedSlug = searchParams.get("item");
   const selectedItem = selectedSlug ? getShopProductBySlug(selectedSlug) ?? null : null;
 

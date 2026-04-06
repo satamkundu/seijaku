@@ -1,14 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useTransition } from "react";
 
 import { canonicalShopRoutes, getShopProductBySlug } from "@/src/lib/shopAllItems";
 
 import { useShopState } from "./ShopStateProvider";
 
 export default function CheckoutPageClient() {
-  const { checkoutItemSlug, checkoutVariantLabel, clearCheckout } = useShopState();
+  const { checkoutItemSlug, checkoutVariantLabel, checkoutSelectedOptions, clearCheckout } = useShopState();
   const item = checkoutItemSlug ? getShopProductBySlug(checkoutItemSlug) : null;
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   if (!item) {
     return (
@@ -84,16 +92,94 @@ export default function CheckoutPageClient() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => clearCheckout()}
-              className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[#2e4a36] px-7 py-4 text-[12px] font-medium uppercase tracking-[0.18em] text-[#f4efe8] hover:bg-[#243c2c]"
-            >
-              Place Order Request
-            </button>
-            <p className="mt-4 text-[12px] leading-[1.8] text-[#6c6257]">
-              This placeholder checkout confirms the routing and product-state flow. Payment capture can be layered in next.
-            </p>
+            <div className="mt-8 space-y-4">
+              <div className="grid gap-4">
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                />
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                />
+                <textarea
+                  rows={4}
+                  placeholder="Anything we should know before we contact you?"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] leading-[1.8] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                />
+              </div>
+
+              {notice ? <p className="rounded-[18px] border border-[#cde0d2] bg-[#eef8f0] px-4 py-3 text-[13px] text-[#2c6541]">{notice}</p> : null}
+              {error ? <p className="rounded-[18px] border border-[#e7c1ba] bg-[#fff1ee] px-4 py-3 text-[13px] text-[#9f4332]">{error}</p> : null}
+
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    setNotice(null);
+                    setError(null);
+
+                    const response = await fetch("/api/public/lead/order-requests", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        name,
+                        email,
+                        phone,
+                        notes,
+                        source: "frontend-checkout",
+                        items: [
+                          {
+                            productSlug: item.slug,
+                            quantity: 1,
+                            selectedOptions: checkoutSelectedOptions ?? undefined,
+                            variantSummary: checkoutVariantLabel ?? undefined,
+                          },
+                        ],
+                      }),
+                    });
+
+                    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+
+                    if (!response.ok) {
+                      setError(data?.error ?? "Unable to place order request.");
+                      return;
+                    }
+
+                    clearCheckout();
+                    setName("");
+                    setEmail("");
+                    setPhone("");
+                    setNotes("");
+                    setNotice("Order request received. Seijaku will reach out with fulfillment details.");
+                  });
+                }}
+                className="inline-flex w-full items-center justify-center rounded-full bg-[#2e4a36] px-7 py-4 text-[12px] font-medium uppercase tracking-[0.18em] text-[#f4efe8] hover:bg-[#243c2c] disabled:cursor-not-allowed disabled:bg-[#a8a095]"
+              >
+                {isPending ? "Sending Request" : "Place Order Request"}
+              </button>
+              <p className="text-[12px] leading-[1.8] text-[#6c6257]">
+                This checkout now submits a real order request while payment capture remains intentionally deferred.
+              </p>
+            </div>
           </div>
         </div>
       </section>

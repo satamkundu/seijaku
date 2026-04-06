@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
-import Footer from "@/src/components/Footer";
-import Navbar from "@/src/components/Navbar";
-import RouteTransitionObserver from "@/src/components/RouteTransitionObserver";
+import AppShell from "@/src/components/AppShell";
 import { ShopStateProvider } from "@/src/components/shop/ShopStateProvider";
 import "./globals.css";
 
@@ -32,12 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning className={`${inter.variable} ${playfair.variable} antialiased`}>
         <ShopStateProvider>
-          <RouteTransitionObserver />
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <div className="flex-1">{children}</div>
-            <Footer />
-          </div>
+          <AppShell>{children}</AppShell>
         </ShopStateProvider>
       </body>
     </html>

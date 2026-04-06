@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import RetreatInquiryForm from "@/src/components/RetreatInquiryForm";
 import { getRetreatBySlug, retreats } from "@/src/lib/retreats";
 
 type RetreatDetailPageProps = {
@@ -69,16 +70,20 @@ export default async function RetreatDetailPage({ params }: RetreatDetailPagePro
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-[#d8cec1] bg-[#faf7f1] p-4">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[22px]">
-                <Image
-                  src={retreat.image}
-                  alt={retreat.name}
-                  fill
-                  sizes="(min-width: 1024px) 42vw, 100vw"
-                  className={`object-cover ${retreat.imagePosition}`}
-                />
+            <div className="space-y-6">
+              <div className="rounded-[28px] border border-[#d8cec1] bg-[#faf7f1] p-4">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[22px]">
+                  <Image
+                    src={retreat.image}
+                    alt={retreat.name}
+                    fill
+                    sizes="(min-width: 1024px) 42vw, 100vw"
+                    className={`object-cover ${retreat.imagePosition}`}
+                  />
+                </div>
               </div>
+
+              <RetreatInquiryForm slug={retreat.slug} title={retreat.name} />
             </div>
           </div>
         </div>

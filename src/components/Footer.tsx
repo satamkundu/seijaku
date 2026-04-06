@@ -1,6 +1,7 @@
 ﻿import Link from "next/link";
 
 import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
+import FooterNewsletterForm from "@/src/components/FooterNewsletterForm";
 
 const exploreLinks = [
   { label: "Shop All", href: canonicalShopRoutes.shopAll },
@@ -72,25 +73,7 @@ export default function Footer() {
             A quiet reset delivered every Wednesday.
           </h3>
 
-          <form className="mt-10" action="#" method="post">
-            <label htmlFor="footer-email" className="sr-only">
-              Your email address
-            </label>
-            <div className="flex flex-col gap-4 border-b border-black/20 pb-2 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-              <input
-                id="footer-email"
-                type="email"
-                placeholder="Your email address"
-                className="w-full bg-transparent px-0 py-1 text-[16px] text-[#1f1d1a] outline-none placeholder:text-[#8e877d]"
-              />
-              <button
-                type="submit"
-                className="shrink-0 px-0 py-1 text-left text-[12px] font-medium uppercase tracking-[0.28em] text-[#1f1d1a] hover:opacity-65 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1f1d1a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#e8e2d7]"
-              >
-                Subscribe
-              </button>
-            </div>
-          </form>
+          <FooterNewsletterForm />
         </section>
 
         <div className="mt-14 border-t border-black/6 pt-14 sm:mt-16 sm:pt-16" />

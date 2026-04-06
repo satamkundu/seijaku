@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ProgramReservationForm from "@/src/components/ProgramReservationForm";
 
 const sessionFlow = [
   "Arrival tea and settling-in",
@@ -43,34 +44,29 @@ export default function ElderResetPage() {
                 </div>
               </div>
               <div className="mt-8">
-                <Link
-                  href="#"
-                  className="inline-flex items-center justify-center rounded-full bg-[#2e4a36] px-7 py-4 text-[12px] font-medium uppercase tracking-[0.18em] text-[#f4efe8] hover:bg-[#243c2c]"
-                >
-                  Reservations Opening Soon
-                </Link>
+                <p className="text-[14px] leading-[1.8] text-[#5f584f]">Reservation requests are live. Seijaku will follow up with confirmation and final logistics.</p>
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-[#D8CEC1] bg-[#FAF7F1] p-8">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7d6d]">What the Session Includes</p>
-              <div className="mt-5 grid gap-4">
-                {sessionFlow.map((item) => (
-                  <div key={item} className="rounded-[18px] border border-[#e0d5c9] bg-[#fcf9f4] px-5 py-4">
-                    <p className="text-[15px] leading-[1.75] text-[#4f4943]">{item}</p>
-                  </div>
-                ))}
+            <div className="space-y-8">
+              <div className="rounded-[28px] border border-[#D8CEC1] bg-[#FAF7F1] p-8">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7d6d]">What the Session Includes</p>
+                <div className="mt-5 grid gap-4">
+                  {sessionFlow.map((item) => (
+                    <div key={item} className="rounded-[18px] border border-[#e0d5c9] bg-[#fcf9f4] px-5 py-4">
+                      <p className="text-[15px] leading-[1.75] text-[#4f4943]">{item}</p>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/programs"
+                  className="mt-6 inline-flex text-[12px] uppercase tracking-[0.18em] text-[#2e4a36] hover:text-[#1d3024]"
+                >
+                  Return to Programs &rarr;
+                </Link>
               </div>
-              <p className="mt-8 max-w-[46ch] text-[15px] leading-[1.8] text-[#5f584f]">
-                This detail page is the first step before any payment flow. Final reservation and payment information can
-                be added here once the booking process is ready.
-              </p>
-              <Link
-                href="/programs"
-                className="mt-6 inline-flex text-[12px] uppercase tracking-[0.18em] text-[#2e4a36] hover:text-[#1d3024]"
-              >
-                Return to Programs &rarr;
-              </Link>
+
+              <ProgramReservationForm slug="elder-reset" title="Elder Reset" />
             </div>
           </div>
         </div>

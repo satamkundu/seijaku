@@ -1,37 +1,192 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Seijaku
 
-## Getting Started
+Seijaku is a split frontend and backend application for a content-led commerce, editorial, and experience brand.
 
-First, run the development server:
+Today the repo contains:
+
+- a Next.js App Router frontend for marketing, shop, ritual, checkout, experiences, and admin UI
+- a standalone Express + Prisma + PostgreSQL backend for admin auth, normalized content records, media, and inbound leads
+- repo docs that describe the current architecture and where the source of truth lives
+
+## Current State
+
+The system is intentionally mid-migration:
+
+- most public storefront and editorial pages still render from frontend registries in `src/lib`
+- admin pages and public lead submissions already use the backend
+- admin edits do not automatically drive most public pages yet
+
+That split is the most important thing to understand before making content or architecture changes.
+
+## Stack
+
+Frontend:
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Framer Motion
+
+Backend:
+
+- Express
+- Prisma
+- PostgreSQL
+- Zod
+- JWT-based admin auth
+
+## Project Structure
+
+- `backend`
+  - standalone REST API, Prisma schema, migrations, seed script
+- `src/app`
+  - public routes, admin routes, and Next route handlers
+- `src/app/admin`
+  - admin CMS pages and route-group layouts
+- `src/app/api`
+  - Next BFF/proxy routes for admin session management and backend access
+- `src/components`
+  - public UI, admin UI, forms, and shared app shell behavior
+- `src/lib`
+  - frontend content registries, admin session helpers, backend fetch helpers
+- `public/images`
+  - bundled public assets used by the storefront and editorial pages
+- `ARCHITECTURE.md`, `CONTENT_MODEL.md`, `WORKFLOWS.md`, `DECISIONS.md`
+  - project documentation
+
+## Route Index
+
+Public routes:
+
+- `/`
+- `/shop`
+- `/shop/[slug]`
+- `/collection`
+- `/checkout`
+- `/ritual`
+- `/dashboard`
+- `/our-story`
+- `/seasonaldrops`
+- `/a-seijaku-life`
+- `/retreats`
+- `/retreats/[slug]`
+- `/programs`
+- `/programs/adult-unwind`
+- `/programs/elder-reset`
+- `/programs/teen-senses`
+- `/experiences`
+
+Admin routes:
+
+- `/admin/login`
+- `/admin`
+- `/admin/products`
+- `/admin/products/[id]`
+- `/admin/bridge-pages`
+- `/admin/articles`
+- `/admin/retreats`
+- `/admin/programs`
+- `/admin/program-sessions`
+- `/admin/collections`
+- `/admin/categories`
+- `/admin/media`
+- `/admin/leads`
+- `/admin/settings`
+- `/admin/team`
+
+Compatibility routes:
+
+- `/shop-all`
+- `/lifestyle`
+- `/categories/[slug]`
+
+## Running Locally
+
+Frontend:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+If port `3000` is busy:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+PORT=3001 npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Backend:
 
-## Learn More
+```bash
+cd backend
+npm install
+cp .env.example .env
+createdb seijaku_backend
+npm run prisma:generate
+npm run prisma:migrate -- --name init
+npm run prisma:seed
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Default local ports:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- frontend: `http://localhost:3000`
+- backend: `http://localhost:4001`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+If you have a local ignored helper script for your machine, you can also launch the backend with:
 
-## Deploy on Vercel
+```bash
+cd backend
+./run-backend.local.sh
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Canonical Sources Of Truth
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-// test protection
+Frontend public rendering:
+
+- `src/lib/shopAllItems.ts`
+- `src/lib/navigation.ts`
+- `src/lib/retreats.ts`
+- `src/lib/seijakuLifeArticles.ts`
+
+Backend data model and API:
+
+- `backend/prisma/schema.prisma`
+- `backend/prisma/seed.ts`
+- `backend/src/routes/public.ts`
+- `backend/src/routes/admin.ts`
+
+Next admin/session boundary:
+
+- `src/lib/admin-session.ts`
+- `src/app/api/admin/session/route.ts`
+- `src/app/api/admin/proxy/[...path]/route.ts`
+- `src/app/api/public/[...path]/route.ts`
+
+## Known Gotchas
+
+- Public catalog and editorial pages still read mostly from `src/lib`, so backend admin edits do not yet fully update the storefront.
+- After switching branches, run `npm install` if the app suddenly blanks or reports missing packages.
+- Offline or network-restricted production builds can fail because the frontend fetches Google Fonts through `next/font`.
+- The backend seeds a bootstrap admin from env values; treat that as setup-only, not a permanent shared credential model.
+
+## GitHub CLI In This Repo
+
+This repo may use a repo-local GitHub CLI wrapper so local `gh` commands can use a different GitHub account than your global CLI session.
+
+```bash
+./.git-tools/gh-local auth status
+./.git-tools/gh-local pr status
+./.git-tools/gh-local repo view
+```
+
+## Documentation
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [CONTENT_MODEL.md](./CONTENT_MODEL.md)
+- [WORKFLOWS.md](./WORKFLOWS.md)
+- [DECISIONS.md](./DECISIONS.md)
+- [backend/README.md](./backend/README.md)
+
+Start with `ARCHITECTURE.md` if you need the system-level picture, and `CONTENT_MODEL.md` if you are touching any user-facing copy or content records.

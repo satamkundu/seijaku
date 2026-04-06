@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ProgramReservationForm from "@/src/components/ProgramReservationForm";
 
 export default function TeenSensesPage() {
   return (
@@ -10,16 +11,20 @@ export default function TeenSensesPage() {
           <p className="mt-5 max-w-[46ch] text-[16px] leading-[1.82] text-[#5e584f]">
             A three-hour digital detox format focused on embodied awareness through craft and guided reflection.
           </p>
-          <div className="mt-10 rounded-[28px] border border-[#D8CEC1] bg-[#FAF7F1] p-8">
-            <p className="text-[15px] leading-[1.8] text-[#5f584f]">
-              Full scheduling and reservation details can be added here as sessions are confirmed.
-            </p>
-            <Link
-              href="/programs"
-              className="mt-6 inline-flex text-[12px] uppercase tracking-[0.18em] text-[#2e4a36] hover:text-[#1d3024]"
-            >
-              Return to Programs &rarr;
-            </Link>
+          <div className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-[28px] border border-[#D8CEC1] bg-[#FAF7F1] p-8">
+              <p className="text-[15px] leading-[1.8] text-[#5f584f]">
+                Teen Senses reservations can be requested before the final session schedule is published. Seijaku will confirm the next cohort directly.
+              </p>
+              <Link
+                href="/programs"
+                className="mt-6 inline-flex text-[12px] uppercase tracking-[0.18em] text-[#2e4a36] hover:text-[#1d3024]"
+              >
+                Return to Programs &rarr;
+              </Link>
+            </div>
+
+            <ProgramReservationForm slug="teen-senses" title="Teen Senses" />
           </div>
         </div>
       </section>
