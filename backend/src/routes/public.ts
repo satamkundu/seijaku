@@ -1,0 +1,419 @@
+import { Prisma, ProductStatus } from "@prisma/client";
+import { Router } from "express";
+import { z } from "zod";
+
+import { prisma } from "../lib/prisma.js";
+import {
+  serializeArticle,
+  serializeBridgePage,
+  serializeProduct,
+  serializeProgram,
+  serializeRetreat,
+  serializeSiteSettings,
+} from "../utils/serializers.js";
+import { asyncHandler, parseBody } from "../utils/http.js";
+
+export const publicRouter = Router();
+
+const productQuerySchema = z.object({
+  type: z.string().optional(),
+  material: z.string().optional(),
+  use_case: z.string().optional(),
+  category: z.string().optional(),
+  collection: z.string().optional(),
+  availability: z.string().optional(),
+  sort: z.enum(["recommended", "newest", "price_asc", "price_desc"]).optional(),
+  search: z.string().optional(),
+});
+
+const orderRequestSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  phone: z.string().optional(),
+  source: z.string().optional(),
+  notes: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        productSlug: z.string().min(1),
+        quantity: z.number().int().min(1).default(1),
+        selectedOptions: z.record(z.string(), z.string()).optional(),
+        variantSummary: z.string().optional(),
+      })
+    )
+    .min(1),
+});
+
+const newsletterSchema = z.object({
+  email: z.string().email(),
+  source: z.string().optional(),
+});
+
+const reservationSchema = z.object({
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  participantCount: z.number().int().min(1).optional(),
+  partySize: z.number().int().min(1).optional(),
+  notes: z.string().optional(),
+  sessionId: z.string().optional(),
+});
+
+const productInclude = {
+  primaryImage: true,
+  media: { include: { mediaAsset: true } },
+  options: { include: { values: true } },
+  collections: { include: { collection: true } },
+  categories: { include: { category: true } },
+} satisfies Prisma.ProductInclude;
+
+function routeParam(req: { params: Record<string, string | string[] | undefined> }, key: string) {
+  const value = req.params[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseAvailability(input?: string) {
+  if (!input) return undefined;
+
+  const normalized = input.toUpperCase().replace(/\s+/g, "_");
+  return ProductStatus[normalized as keyof typeof ProductStatus];
+}
+
+publicRouter.get(
+  "/catalog/products",
+  asyncHandler(async (req, res) => {
+    const query = productQuerySchema.parse(req.query);
+    const availability = parseAvailability(query.availability);
+
+    const products = await prisma.product.findMany({
+      where: {
+        ...(query.type ? { type: query.type } : {}),
+        ...(query.material ? { material: query.material } : {}),
+        ...(query.use_case ? { useCase: query.use_case } : {}),
+        ...(availability ? { status: availability } : {}),
+        ...(query.search
+          ? {
+              OR: [
+                { title: { contains: query.search, mode: "insensitive" } },
+                { shortDescription: { contains: query.search, mode: "insensitive" } },
+                { longDescription: { contains: query.search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+        ...(query.category
+          ? {
+              categories: {
+                some: {
+                  category: {
+                    slug: query.category,
+                  },
+                },
+              },
+            }
+          : {}),
+        ...(query.collection
+          ? {
+              collections: {
+                some: {
+                  collection: {
+                    slug: query.collection,
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+      include: productInclude,
+      orderBy:
+        query.sort === "newest"
+          ? { releaseDate: "desc" }
+          : query.sort === "price_asc"
+            ? { priceAmount: "asc" }
+            : query.sort === "price_desc"
+              ? { priceAmount: "desc" }
+              : [{ publishedAt: "desc" }, { title: "asc" }],
+    });
+
+    res.json({ items: products.map(serializeProduct) });
+  })
+);
+
+publicRouter.get(
+  "/catalog/products/:slug",
+  asyncHandler(async (req, res) => {
+    const product = await prisma.product.findUnique({
+      where: { slug: routeParam(req, "slug") },
+      include: productInclude,
+    });
+
+    if (!product) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+
+    res.json({ item: serializeProduct(product) });
+  })
+);
+
+publicRouter.get(
+  "/catalog/bridge-pages/:slug",
+  asyncHandler(async (req, res) => {
+    const page = await prisma.shopBridgePage.findUnique({
+      where: { slug: routeParam(req, "slug") },
+      include: {
+        products: {
+          include: {
+            product: {
+              include: productInclude,
+            },
+          },
+        },
+      },
+    });
+
+    if (!page) {
+      res.status(404).json({ error: "Bridge page not found" });
+      return;
+    }
+
+    res.json({ item: serializeBridgePage(page) });
+  })
+);
+
+publicRouter.get(
+  "/content/articles",
+  asyncHandler(async (_req, res) => {
+    const articles = await prisma.article.findMany({
+      where: { status: "PUBLISHED" },
+      include: { primaryImage: true },
+      orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
+    });
+
+    res.json({ items: articles.map(serializeArticle) });
+  })
+);
+
+publicRouter.get(
+  "/content/articles/:slug",
+  asyncHandler(async (req, res) => {
+    const article = await prisma.article.findUnique({
+      where: { slug: routeParam(req, "slug") },
+      include: { primaryImage: true },
+    });
+
+    if (!article) {
+      res.status(404).json({ error: "Article not found" });
+      return;
+    }
+
+    res.json({ item: serializeArticle(article) });
+  })
+);
+
+publicRouter.get(
+  "/content/retreats",
+  asyncHandler(async (_req, res) => {
+    const retreats = await prisma.retreat.findMany({
+      include: { primaryImage: true },
+      orderBy: { name: "asc" },
+    });
+
+    res.json({ items: retreats.map(serializeRetreat) });
+  })
+);
+
+publicRouter.get(
+  "/content/retreats/:slug",
+  asyncHandler(async (req, res) => {
+    const retreat = await prisma.retreat.findUnique({
+      where: { slug: routeParam(req, "slug") },
+      include: { primaryImage: true },
+    });
+
+    if (!retreat) {
+      res.status(404).json({ error: "Retreat not found" });
+      return;
+    }
+
+    res.json({ item: serializeRetreat(retreat) });
+  })
+);
+
+publicRouter.get(
+  "/content/programs",
+  asyncHandler(async (_req, res) => {
+    const programs = await prisma.program.findMany({
+      include: { sessions: true },
+      orderBy: { name: "asc" },
+    });
+
+    res.json({ items: programs.map(serializeProgram) });
+  })
+);
+
+publicRouter.get(
+  "/content/programs/:slug",
+  asyncHandler(async (req, res) => {
+    const program = await prisma.program.findUnique({
+      where: { slug: routeParam(req, "slug") },
+      include: { sessions: true },
+    });
+
+    if (!program) {
+      res.status(404).json({ error: "Program not found" });
+      return;
+    }
+
+    res.json({ item: serializeProgram(program) });
+  })
+);
+
+publicRouter.get(
+  "/content/site-settings",
+  asyncHandler(async (_req, res) => {
+    const settings = await prisma.siteSetting.findUnique({
+      where: { key: "default" },
+      include: { logoImage: true },
+    });
+
+    if (!settings) {
+      res.status(404).json({ error: "Site settings not found" });
+      return;
+    }
+
+    res.json({ item: serializeSiteSettings(settings) });
+  })
+);
+
+publicRouter.post(
+  "/lead/order-requests",
+  asyncHandler(async (req, res) => {
+    const payload = parseBody(orderRequestSchema, req.body);
+    const productSlugs = payload.items.map((item) => item.productSlug);
+    const products = await prisma.product.findMany({
+      where: { slug: { in: productSlugs } },
+    });
+
+    const bySlug = new Map(products.map((product) => [product.slug, product]));
+
+    if (products.length !== productSlugs.length) {
+      res.status(400).json({ error: "One or more products were not found" });
+      return;
+    }
+
+    const orderRequest = await prisma.orderRequest.create({
+      data: {
+        email: payload.email,
+        name: payload.name,
+        phone: payload.phone,
+        source: payload.source ?? "frontend-checkout",
+        notes: payload.notes,
+        items: {
+          create: payload.items.map((item) => {
+            const product = bySlug.get(item.productSlug)!;
+
+            return {
+              productId: product.id,
+              quantity: item.quantity,
+              unitPriceAmount: product.priceAmount,
+              selectedOptionsJson: item.selectedOptions ?? undefined,
+              variantSummary: item.variantSummary,
+            };
+          }),
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    res.status(201).json({ item: orderRequest });
+  })
+);
+
+publicRouter.post(
+  "/lead/newsletter-subscriptions",
+  asyncHandler(async (req, res) => {
+    const payload = parseBody(newsletterSchema, req.body);
+
+    const subscription = await prisma.newsletterSubscription.upsert({
+      where: { email: payload.email },
+      update: {
+        source: payload.source,
+        status: "SUBSCRIBED",
+      },
+      create: {
+        email: payload.email,
+        source: payload.source ?? "site-footer",
+      },
+    });
+
+    res.status(201).json({ item: subscription });
+  })
+);
+
+publicRouter.post(
+  "/lead/program-reservations",
+  asyncHandler(async (req, res) => {
+    const payload = parseBody(reservationSchema, req.body);
+    const program = await prisma.program.findUnique({
+      where: { slug: payload.slug },
+    });
+
+    if (!program) {
+      res.status(404).json({ error: "Program not found" });
+      return;
+    }
+
+    if (payload.sessionId) {
+      const session = await prisma.programSession.findUnique({ where: { id: payload.sessionId } });
+      if (!session || session.programId !== program.id) {
+        res.status(400).json({ error: "Program session not found" });
+        return;
+      }
+    }
+
+    const reservation = await prisma.programReservation.create({
+      data: {
+        programId: program.id,
+        programSessionId: payload.sessionId,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        participantCount: payload.participantCount ?? 1,
+        notes: payload.notes,
+      },
+    });
+
+    res.status(201).json({ item: reservation });
+  })
+);
+
+publicRouter.post(
+  "/lead/retreat-inquiries",
+  asyncHandler(async (req, res) => {
+    const payload = parseBody(reservationSchema, req.body);
+    const retreat = await prisma.retreat.findUnique({
+      where: { slug: payload.slug },
+    });
+
+    if (!retreat) {
+      res.status(404).json({ error: "Retreat not found" });
+      return;
+    }
+
+    const inquiry = await prisma.retreatInquiry.create({
+      data: {
+        retreatId: retreat.id,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        partySize: payload.partySize ?? 1,
+        notes: payload.notes,
+      },
+    });
+
+    res.status(201).json({ item: inquiry });
+  })
+);
