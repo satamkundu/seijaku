@@ -17,21 +17,21 @@ The primary public commerce experience lives under:
 
 Older paths such as `/shop-all`, `/lifestyle`, and `/categories/[slug]` are compatibility routes, not the primary model.
 
-### 2. `src/lib/shopAllItems.ts` Is Still The Public Storefront Source Of Truth
+### 2. `frontend/src/lib/shopAllItems.ts` Is Still The Public Storefront Source Of Truth
 
 Status: Active
 
 For the currently rendered storefront, shop structure and product presentation are still driven from:
 
-- `src/lib/shopAllItems.ts`
+- `frontend/src/lib/shopAllItems.ts`
 
 Until the storefront is migrated to backend content APIs, this file remains authoritative for what the public shop shows.
 
-### 3. `src/lib/categoryBridge.ts` Is Legacy
+### 3. `frontend/src/lib/categoryBridge.ts` Is Legacy
 
 Status: Active
 
-`src/lib/categoryBridge.ts` reflects the older `/categories/*` and `/shop-all` era. New work should not treat it as canonical.
+`frontend/src/lib/categoryBridge.ts` reflects the older `/categories/*` and `/shop-all` era. New work should not treat it as canonical.
 
 ### 4. The Standalone Backend In `backend/` Is The System Of Record For Admin, Leads, And Normalized Content
 
@@ -55,6 +55,17 @@ The admin UI is embedded in the Next app rather than being a separate frontend.
 
 The backend remains separate, but the browser reaches it through the Next app's BFF/proxy layer.
 
+### 5a. The Repo Is A Two-Workspace Monorepo
+
+Status: Active
+
+The repo is intentionally split into:
+
+- `frontend/`
+- `backend/`
+
+Docs and workspace tooling stay at the root. This keeps frontend and backend installs cleanly separated while preserving one repository.
+
 ### 6. Admin Sessions Use A Signed HttpOnly Cookie Through Next
 
 Status: Active
@@ -65,7 +76,7 @@ Current model:
 
 - backend returns JWT
 - Next signs and stores it in an httpOnly cookie
-- browser code talks to `/api/admin/*`
+- browser code talks to `/api/admin/*` inside the frontend workspace
 
 ### 7. Admin Roles Are `SUPER_ADMIN` And `EDITOR`
 
@@ -82,7 +93,7 @@ Status: Active
 
 Current architecture:
 
-- most public reads still come from frontend files in `src/lib`
+- most public reads still come from frontend files in `frontend/src/lib`
 - public writes for newsletter, checkout, program reservations, and retreat inquiries go to the backend
 
 This split is intentional for the current migration stage, but it is also the main source-of-truth risk in the repo.

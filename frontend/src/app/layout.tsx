@@ -1,19 +1,39 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import localFont from "next/font/local";
 import AppShell from "@/src/components/AppShell";
 import { ShopStateProvider } from "@/src/components/shop/ShopStateProvider";
 import "./globals.css";
 
-const inter = Inter({
+const inter = localFont({
   variable: "--font-inter",
-  weight: ["300", "400", "500"],
-  subsets: ["latin"],
+  src: [
+    {
+      path: "./fonts/inter-latin-300-normal.woff2",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter-latin-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter-latin-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+  ],
 });
 
-const playfair = Playfair_Display({
+const playfair = localFont({
   variable: "--font-playfair",
-  weight: ["400"],
-  subsets: ["latin"],
+  src: [
+    {
+      path: "./fonts/playfair-display-latin-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+  ],
 });
 
 export const metadata: Metadata = {

@@ -17,18 +17,18 @@ This document explains which layer is authoritative for which kind of change.
 
 These files still drive what most visitors actually see on the public site:
 
-- `src/lib/shopAllItems.ts`
-- `src/lib/navigation.ts`
-- `src/lib/retreats.ts`
-- `src/lib/seijakuLifeArticles.ts`
-- route-level page files under `src/app/programs/*`
+- `frontend/src/lib/shopAllItems.ts`
+- `frontend/src/lib/navigation.ts`
+- `frontend/src/lib/retreats.ts`
+- `frontend/src/lib/seijakuLifeArticles.ts`
+- route-level page files under `frontend/src/app/programs/*`
 - route-level page files and components for brand/storytelling sections
 
 Use this layer when:
 
 - changing copy that must appear on the public storefront immediately
 - changing route semantics for existing public pages
-- changing shop card/detail presentation that still depends on `src/lib`
+- changing shop card/detail presentation that still depends on `frontend/src/lib`
 
 ### Backend-Owned Normalized Content
 
@@ -91,7 +91,7 @@ Admin identity is split across:
 
 - backend `Admin` records
 - a backend JWT
-- a Next-signed httpOnly cookie handled by `src/lib/admin-session.ts`
+- a Next-signed httpOnly cookie handled by `frontend/src/lib/admin-session.ts`
 
 This is not a customer auth system yet. Customer-facing account state is still mostly local UI state.
 
@@ -101,7 +101,7 @@ This is not a customer auth system yet. Customer-facing account state is still m
 
 Current public source:
 
-- `src/lib/shopAllItems.ts`
+- `frontend/src/lib/shopAllItems.ts`
 
 Although the backend also has seeded products and bridge pages, the storefront still mostly trusts the frontend registry.
 
@@ -109,14 +109,14 @@ Although the backend also has seeded products and bridge pages, the storefront s
 
 Current public source:
 
-- `src/lib/navigation.ts`
+- `frontend/src/lib/navigation.ts`
 
 ### Retreats
 
 Current public route content:
 
-- `src/lib/retreats.ts`
-- route-level components in `src/app/retreats`
+- `frontend/src/lib/retreats.ts`
+- route-level components in `frontend/src/app/retreats`
 
 The retreat inquiry form itself posts to the backend.
 
@@ -124,7 +124,7 @@ The retreat inquiry form itself posts to the backend.
 
 Current public route content:
 
-- route-level program pages in `src/app/programs/*`
+- route-level program pages in `frontend/src/app/programs/*`
 
 The reservation form reads sessions from the backend and writes reservations to the backend.
 
@@ -132,7 +132,7 @@ The reservation form reads sessions from the backend and writes reservations to 
 
 Current public source:
 
-- `src/lib/seijakuLifeArticles.ts`
+- `frontend/src/lib/seijakuLifeArticles.ts`
 
 ### Footer And Checkout Lead Flows
 
@@ -165,7 +165,7 @@ Examples:
 
 Most public pages still use files under:
 
-- `public/images`
+- `frontend/public/images`
 
 These asset references are hardcoded inside frontend content registries and components.
 
@@ -181,13 +181,13 @@ Current purpose:
 
 Important limitation:
 
-Changing a backend media record does not automatically update most public pages today if those pages still point directly at `public/images` paths in frontend code.
+Changing a backend media record does not automatically update most public pages today if those pages still point directly at `frontend/public/images` paths in frontend code.
 
 ## Canonical Vs Legacy Modules
 
 ### Canonical For Current Public Shop Rendering
 
-- `src/lib/shopAllItems.ts`
+- `frontend/src/lib/shopAllItems.ts`
 
 ### Canonical For Admin/Database Catalog Records
 
@@ -196,7 +196,7 @@ Changing a backend media record does not automatically update most public pages 
 
 ### Legacy / Transitional
 
-- `src/lib/categoryBridge.ts`
+- `frontend/src/lib/categoryBridge.ts`
 
 This module reflects the older `/categories/*` model and should not be treated as the main commerce source of truth.
 

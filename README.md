@@ -6,13 +6,14 @@ Today the repo contains:
 
 - a Next.js App Router frontend for marketing, shop, ritual, checkout, experiences, and admin UI
 - a standalone Express + Prisma + PostgreSQL backend for admin auth, normalized content records, media, and inbound leads
+- a workspace root that coordinates both apps
 - repo docs that describe the current architecture and where the source of truth lives
 
 ## Current State
 
 The system is intentionally mid-migration:
 
-- most public storefront and editorial pages still render from frontend registries in `src/lib`
+- most public storefront and editorial pages still render from frontend registries in `frontend/src/lib`
 - admin pages and public lead submissions already use the backend
 - admin edits do not automatically drive most public pages yet
 
@@ -38,19 +39,21 @@ Backend:
 
 ## Project Structure
 
+- `frontend`
+  - Next.js app workspace, frontend env example, app config, assets, and scripts
 - `backend`
   - standalone REST API, Prisma schema, migrations, seed script
-- `src/app`
+- `frontend/src/app`
   - public routes, admin routes, and Next route handlers
-- `src/app/admin`
+- `frontend/src/app/admin`
   - admin CMS pages and route-group layouts
-- `src/app/api`
+- `frontend/src/app/api`
   - Next BFF/proxy routes for admin session management and backend access
-- `src/components`
+- `frontend/src/components`
   - public UI, admin UI, forms, and shared app shell behavior
-- `src/lib`
+- `frontend/src/lib`
   - frontend content registries, admin session helpers, backend fetch helpers
-- `public/images`
+- `frontend/public/images`
   - bundled public assets used by the storefront and editorial pages
 - `ARCHITECTURE.md`, `CONTENT_MODEL.md`, `WORKFLOWS.md`, `DECISIONS.md`
   - project documentation
@@ -107,20 +110,21 @@ Frontend:
 
 ```bash
 npm install
-npm run dev
+npm run dev:frontend
 ```
 
 If port `3000` is busy:
 
 ```bash
+cd frontend
 PORT=3001 npm run dev
 ```
 
 Backend:
 
 ```bash
-cd backend
 npm install
+cd backend
 cp .env.example .env
 createdb seijaku_backend
 npm run prisma:generate
@@ -141,14 +145,24 @@ cd backend
 ./run-backend.local.sh
 ```
 
+Workspace shortcuts from the repo root:
+
+```bash
+npm run dev:frontend
+npm run dev:backend
+npm run build:frontend
+npm run build:backend
+npm run build
+```
+
 ## Canonical Sources Of Truth
 
 Frontend public rendering:
 
-- `src/lib/shopAllItems.ts`
-- `src/lib/navigation.ts`
-- `src/lib/retreats.ts`
-- `src/lib/seijakuLifeArticles.ts`
+- `frontend/src/lib/shopAllItems.ts`
+- `frontend/src/lib/navigation.ts`
+- `frontend/src/lib/retreats.ts`
+- `frontend/src/lib/seijakuLifeArticles.ts`
 
 Backend data model and API:
 
@@ -159,17 +173,37 @@ Backend data model and API:
 
 Next admin/session boundary:
 
-- `src/lib/admin-session.ts`
-- `src/app/api/admin/session/route.ts`
-- `src/app/api/admin/proxy/[...path]/route.ts`
-- `src/app/api/public/[...path]/route.ts`
+- `frontend/src/lib/admin-session.ts`
+- `frontend/src/app/api/admin/session/route.ts`
+- `frontend/src/app/api/admin/proxy/[...path]/route.ts`
+- `frontend/src/app/api/public/[...path]/route.ts`
 
 ## Known Gotchas
 
-- Public catalog and editorial pages still read mostly from `src/lib`, so backend admin edits do not yet fully update the storefront.
-- After switching branches, run `npm install` if the app suddenly blanks or reports missing packages.
-- Offline or network-restricted production builds can fail because the frontend fetches Google Fonts through `next/font`.
+- Public catalog and editorial pages still read mostly from `frontend/src/lib`, so backend admin edits do not yet fully update the storefront.
+- After switching branches or restructuring workspaces, run `npm install` at the repo root if the app suddenly blanks or reports missing packages.
+- The frontend fonts are now self-hosted under `frontend/src/app/fonts`, so builds no longer depend on Google Fonts availability.
+- On machines where local PostgreSQL needs a custom socket-based `DATABASE_URL`, the root `npm run dev:backend` script will use `backend/run-backend.local.sh` when that ignored helper exists.
 - The backend seeds a bootstrap admin from env values; treat that as setup-only, not a permanent shared credential model.
+
+## Vercel Deployment Model
+
+Frontend project:
+
+- root directory: `frontend/`
+- production env: `BACKEND_INTERNAL_URL`, `ADMIN_COOKIE_SECRET`
+
+Backend project:
+
+- root directory: `backend/`
+- production env: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+- storage envs for S3-compatible uploads if media uploads are enabled in production
+
+For production data:
+
+- run `npm run prisma:deploy` in `backend/`
+- run `npm run prisma:seed` in `backend/`
+- do not rely on local filesystem uploads in production
 
 ## GitHub CLI In This Repo
 

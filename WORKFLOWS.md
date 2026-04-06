@@ -11,12 +11,13 @@ npm install
 Start the frontend:
 
 ```bash
-npm run dev
+npm run dev:frontend
 ```
 
 If port `3000` is already taken:
 
 ```bash
+cd frontend
 PORT=3001 npm run dev
 ```
 
@@ -47,6 +48,7 @@ npm run prisma:seed
 Start the backend:
 
 ```bash
+cd backend
 npm run dev
 ```
 
@@ -60,6 +62,14 @@ If your machine has a local ignored launcher script configured, you can also use
 ./run-backend.local.sh
 ```
 
+Or from the repo root:
+
+```bash
+npm run dev:backend
+```
+
+That root script will use `backend/run-backend.local.sh` automatically when the ignored helper exists on the local machine.
+
 ## Everyday Startup
 
 Typical local startup sequence:
@@ -67,7 +77,7 @@ Typical local startup sequence:
 ```bash
 # terminal 1
 cd /path/to/seijaku
-npm run dev
+npm run dev:frontend
 
 # terminal 2
 cd /path/to/seijaku/backend
@@ -85,14 +95,14 @@ Then open:
 Frontend typecheck:
 
 ```bash
+cd frontend
 npx tsc --noEmit
 ```
 
 Backend build:
 
 ```bash
-cd backend
-npm run build
+npm run build:backend
 ```
 
 Backend health check:
@@ -147,7 +157,6 @@ npm install
 If the backend changed too:
 
 ```bash
-cd backend
 npm install
 ```
 
@@ -157,16 +166,17 @@ If the frontend suddenly looks broken after a pull:
 
 1. Confirm the dev server is still running.
 2. Restart it.
-3. Run `npm install`.
+3. Run `npm install` at the repo root.
 4. Re-check the browser.
 
 This repo has already hit missing-dependency issues after branch switches.
 
 ## Build Caveats
 
-- The frontend uses Google Fonts through `next/font`.
-- Fully offline or network-restricted production builds may fail while fetching font assets.
-- Local frontend success does not guarantee `npm run build` will succeed in a locked-down network environment.
+- The frontend now self-hosts its fonts from `frontend/src/app/fonts`.
+- Frontend production builds should no longer need Google Fonts network access.
+- The most reliable workspace build check is `npm run build` from the repo root.
+- The frontend build intentionally sets `NEXT_IGNORE_INCORRECT_LOCKFILE=1` to avoid Next's lockfile patcher breaking inside the npm workspace layout.
 
 ## Repo-Local Git Identity
 

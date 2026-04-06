@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import DiffusersPageClient from "@/src/components/shop/diffusers/DiffusersPageClient";
 import LifestylePageClient from "@/src/components/shop/lifestyle/LifestylePageClient";
@@ -74,16 +75,32 @@ export default async function ShopSlugPage({ params }: ShopSlugPageProps) {
   const products = getShopBridgeProducts(slug as ShopBridgeSlug);
 
   if (slug === "diffusers") {
-    return <DiffusersPageClient products={products} />;
+    return (
+      <Suspense fallback={null}>
+        <DiffusersPageClient products={products} />
+      </Suspense>
+    );
   }
 
   if (slug === "lifestyle") {
-    return <LifestylePageClient products={products} />;
+    return (
+      <Suspense fallback={null}>
+        <LifestylePageClient products={products} />
+      </Suspense>
+    );
   }
 
   if (slug === "scarves-and-squares") {
-    return <TextilesPageClient products={products} />;
+    return (
+      <Suspense fallback={null}>
+        <TextilesPageClient products={products} />
+      </Suspense>
+    );
   }
 
-  return <ShopBridgePageClient page={page} products={products} />;
+  return (
+    <Suspense fallback={null}>
+      <ShopBridgePageClient page={page} products={products} />
+    </Suspense>
+  );
 }

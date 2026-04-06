@@ -39,6 +39,7 @@ The public storefront is not fully API-driven yet, but the backend is already th
 ## Commands
 
 ```bash
+cd backend
 npm install
 npm run prisma:generate
 npm run prisma:migrate -- --name init
@@ -49,6 +50,7 @@ npm run dev
 Build for type-safe server output:
 
 ```bash
+cd backend
 npm run build
 ```
 
@@ -160,6 +162,6 @@ The seed currently imports the existing Seijaku frontend content into the normal
 Current split:
 
 - admin UI and lead forms already use this backend
-- most public content rendering still comes from frontend files in `src/lib`
+- most public content rendering still comes from frontend files in `frontend/src/lib`
 
 So backend content changes are authoritative for admin and API work, but they do not yet fully control the public storefront.

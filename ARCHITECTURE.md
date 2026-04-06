@@ -4,7 +4,7 @@
 
 Seijaku is no longer just a frontend prototype. The repo now contains a split architecture:
 
-1. a Next.js frontend for public pages and the embedded admin UI
+1. a Next.js frontend workspace for public pages and the embedded admin UI
 2. a Next-side BFF layer for admin session handling and backend proxying
 3. a standalone Express + Prisma backend as the system of record
 4. a PostgreSQL database seeded from the current content set
@@ -25,10 +25,10 @@ Primary responsibilities:
 
 Key folders:
 
-- `src/app`
-- `src/components`
-- `src/lib`
-- `public/images`
+- `frontend/src/app`
+- `frontend/src/components`
+- `frontend/src/lib`
+- `frontend/public/images`
 
 ### Next BFF Layer
 
@@ -36,9 +36,9 @@ The browser does not talk directly to the backend for admin work.
 
 Key entrypoints:
 
-- `src/app/api/admin/session/route.ts`
-- `src/app/api/admin/proxy/[...path]/route.ts`
-- `src/app/api/public/[...path]/route.ts`
+- `frontend/src/app/api/admin/session/route.ts`
+- `frontend/src/app/api/admin/proxy/[...path]/route.ts`
+- `frontend/src/app/api/public/[...path]/route.ts`
 
 Responsibilities:
 
@@ -82,17 +82,19 @@ The backend schema includes:
 
 - `backend`
   - API server, Prisma schema, migrations, seed logic
-- `src/app`
+- `frontend`
+  - Next.js app workspace, frontend config, env example, assets, and scripts
+- `frontend/src/app`
   - public routes, admin route groups, and Next API routes
-- `src/app/admin`
+- `frontend/src/app/admin`
   - admin route tree and server-rendered admin pages
-- `src/app/api`
+- `frontend/src/app/api`
   - BFF endpoints for admin session and backend proxies
-- `src/components/admin`
+- `frontend/src/components/admin`
   - admin shell, editors, inboxes, and shared admin UI
-- `src/lib`
+- `frontend/src/lib`
   - public content registries plus admin/backend/session helpers
-- `public/images`
+- `frontend/public/images`
   - public bundled assets used by the live storefront
 
 ## Route Model
@@ -144,7 +146,7 @@ These still exist, but they are not canonical:
 
 ## App Shell
 
-The root layout is still defined in `src/app/layout.tsx`, but the app now uses `src/components/AppShell.tsx` to avoid rendering the public marketing chrome inside `/admin`.
+The root layout is still defined in `frontend/src/app/layout.tsx`, but the app now uses `frontend/src/components/AppShell.tsx` to avoid rendering the public marketing chrome inside `/admin`.
 
 Current behavior:
 
@@ -157,14 +159,14 @@ This is a meaningful improvement over the earlier all-routes-share-the-marketing
 
 ### Public Reads
 
-Most public page reads still come from frontend files in `src/lib` and route-level components.
+Most public page reads still come from frontend files in `frontend/src/lib` and route-level components.
 
 Current examples:
 
-- shop/catalog structure from `src/lib/shopAllItems.ts`
-- navigation from `src/lib/navigation.ts`
-- retreats from `src/lib/retreats.ts`
-- editorial from `src/lib/seijakuLifeArticles.ts`
+- shop/catalog structure from `frontend/src/lib/shopAllItems.ts`
+- navigation from `frontend/src/lib/navigation.ts`
+- retreats from `frontend/src/lib/retreats.ts`
+- editorial from `frontend/src/lib/seijakuLifeArticles.ts`
 
 ### Public Writes
 
@@ -217,7 +219,7 @@ There are currently two parallel commerce representations:
 
 Canonical today for storefront rendering:
 
-- `src/lib/shopAllItems.ts`
+- `frontend/src/lib/shopAllItems.ts`
 
 This still drives:
 
@@ -246,10 +248,20 @@ These two representations can drift.
 
 Right now:
 
-- public shop pages mostly trust `src/lib/shopAllItems.ts`
+- public shop pages mostly trust `frontend/src/lib/shopAllItems.ts`
 - admin edits update backend product records
 
 Until storefront reads are migrated to backend APIs, backend catalog edits should be treated as admin/data groundwork rather than a complete public CMS.
+
+## Repo Layout Decision
+
+The repo now uses an npm workspace layout:
+
+- `frontend/`
+- `backend/`
+- docs and workspace tooling at the repo root
+
+This separation is deliberate. It keeps frontend builds from typechecking backend code, makes Vercel root-directory configuration explicit, and allows the frontend to build independently.
 
 ## Content Architecture
 
@@ -264,18 +276,18 @@ See `CONTENT_MODEL.md` for the operational source-of-truth breakdown.
 
 Two media systems currently coexist:
 
-- bundled public assets in `public/images`
+- bundled public assets in `frontend/public/images`
 - backend `MediaAsset` records, with local upload storage in development and S3-compatible support in production
 
 The bundled assets are still what most public pages render today. The backend media library is used by admin-managed records and future migration work.
 
 ## Legacy / Transitional Areas
 
-`src/lib/categoryBridge.ts` remains the clearest legacy module. It reflects the older `/categories/*`, `/shop-all`, and `/lifestyle` model rather than the canonical `/shop/*` structure.
+`frontend/src/lib/categoryBridge.ts` remains the clearest legacy module. It reflects the older `/categories/*`, `/shop-all`, and `/lifestyle` model rather than the canonical `/shop/*` structure.
 
 Going forward:
 
-- treat `src/lib/shopAllItems.ts` as the storefront source of truth
+- treat `frontend/src/lib/shopAllItems.ts` as the storefront source of truth
 - treat `categoryBridge.ts` as legacy
 - do not add new logic to both systems
 
@@ -294,20 +306,20 @@ Weakest areas:
 - storefront still not reading from backend content
 - duplicated source of truth between frontend registries and backend records
 - incomplete end-to-end CMS effect for public pages
-- production/offline build sensitivity because of hosted font fetching
+- mixed public/backend content ownership during the migration
 
 ## Recommended Source-Of-Truth Files
 
 When working in this repo, start with:
 
-- `src/app/layout.tsx`
-- `src/components/AppShell.tsx`
-- `src/lib/shopAllItems.ts`
-- `src/lib/navigation.ts`
-- `src/lib/admin-session.ts`
-- `src/app/api/admin/session/route.ts`
-- `src/app/api/admin/proxy/[...path]/route.ts`
-- `src/app/api/public/[...path]/route.ts`
+- `frontend/src/app/layout.tsx`
+- `frontend/src/components/AppShell.tsx`
+- `frontend/src/lib/shopAllItems.ts`
+- `frontend/src/lib/navigation.ts`
+- `frontend/src/lib/admin-session.ts`
+- `frontend/src/app/api/admin/session/route.ts`
+- `frontend/src/app/api/admin/proxy/[...path]/route.ts`
+- `frontend/src/app/api/public/[...path]/route.ts`
 - `backend/prisma/schema.prisma`
 - `backend/src/routes/public.ts`
 - `backend/src/routes/admin.ts`
@@ -316,7 +328,7 @@ When working in this repo, start with:
 
 The main follow-up work should be:
 
-- migrate public catalog/content reads from `src/lib` to backend APIs
+- migrate public catalog/content reads from `frontend/src/lib` to backend APIs
 - consolidate the storefront and backend content sources
 - decide whether public assets remain bundled or move behind the media library
 - tighten bootstrap-admin handling beyond env-seeded defaults
