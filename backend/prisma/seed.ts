@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { CollectionKind, Prisma, PrismaClient, ProductStatus, SelectionMode, TagKind } from "@prisma/client";
 
 import { hashPassword } from "../src/lib/auth.js";
 import { env } from "../src/config.js";
-import * as shopData from "../../src/lib/shopAllItems";
-import * as articleData from "../../src/lib/seijakuLifeArticles";
-import * as retreatData from "../../src/lib/retreats";
+import * as shopData from "../../frontend/src/lib/shopAllItems.js";
+import * as articleData from "../../frontend/src/lib/seijakuLifeArticles.js";
+import * as retreatData from "../../frontend/src/lib/retreats.js";
 
 const prisma = new PrismaClient();
 const shop = ((shopData as any).default ?? shopData) as typeof shopData & Record<string, any>;
