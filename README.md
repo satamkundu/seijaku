@@ -153,6 +153,7 @@ npm run dev:backend
 npm run build:frontend
 npm run build:backend
 npm run build
+npm run build:all
 ```
 
 ## Canonical Sources Of Truth
@@ -204,6 +205,11 @@ For production data:
 - run `npm run prisma:deploy` in `backend/`
 - run `npm run prisma:seed` in `backend/`
 - do not rely on local filesystem uploads in production
+
+Current note:
+
+- the existing Vercel frontend project still builds from the repo root today, so the root `npm run build` command is intentionally frontend-only
+- use `npm run build:all` when you want the local repo to validate both frontend and backend together
 
 ## GitHub CLI In This Repo
 

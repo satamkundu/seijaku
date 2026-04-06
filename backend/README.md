@@ -54,6 +54,8 @@ cd backend
 npm run build
 ```
 
+The backend build runs `prisma generate` before TypeScript compilation so clean installs can build without requiring a separate manual generate step first.
+
 ## Default Local Config
 
 `.env.example` defaults:

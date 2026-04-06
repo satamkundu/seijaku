@@ -105,6 +105,14 @@ Backend build:
 npm run build:backend
 ```
 
+That backend build path now runs Prisma client generation before TypeScript compile, which keeps clean installs and future backend deployments from failing on a missing generated client.
+
+Full frontend + backend validation from the repo root:
+
+```bash
+npm run build:all
+```
+
 Backend health check:
 
 ```bash
@@ -175,7 +183,8 @@ This repo has already hit missing-dependency issues after branch switches.
 
 - The frontend now self-hosts its fonts from `frontend/src/app/fonts`.
 - Frontend production builds should no longer need Google Fonts network access.
-- The most reliable workspace build check is `npm run build` from the repo root.
+- The root `npm run build` command intentionally builds the frontend only so the current Vercel frontend project can keep passing while it still targets the repo root.
+- Use `npm run build:all` when you want local validation of both workspaces together.
 - The frontend build intentionally sets `NEXT_IGNORE_INCORRECT_LOCKFILE=1` to avoid Next's lockfile patcher breaking inside the npm workspace layout.
 
 ## Repo-Local Git Identity

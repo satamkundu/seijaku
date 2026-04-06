@@ -10,6 +10,7 @@
     "dev:backend": "sh -c 'if [ -x backend/run-backend.local.sh ]; then cd backend && ./run-backend.local.sh; else npm run dev --workspace backend; fi'",
     "build:frontend": "npm run build --workspace frontend",
     "build:backend": "npm run build --workspace backend",
-    "build": "npm run build:frontend && npm run build:backend"
+    "build": "npm run build:frontend",
+    "build:all": "npm run build:frontend && npm run build:backend"
   }
 }
