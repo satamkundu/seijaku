@@ -44,6 +44,11 @@ enum ProductStatus {
   BOOKING_OPEN
 }
 
+enum ProductWorkflowStatus {
+  DRAFT
+  PUBLISHED
+}
+
 enum ProductMediaType {
   PRIMARY
   GALLERY
@@ -176,6 +181,7 @@ model Product {
   priceAmount      Int
   currency         String                      @default("INR")
   status           ProductStatus               @default(IN_STOCK)
+  workflowStatus   ProductWorkflowStatus       @default(DRAFT)
   releaseDate      DateTime?
   seoTitle         String?
   seoDescription   String?
