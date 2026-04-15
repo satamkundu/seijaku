@@ -10,10 +10,12 @@ import { canonicalShopRoutes } from "@/src/lib/shopAllItems";
 
 import HomeDiscoveryRail from "./HomeDiscoveryRail";
 import MenuSlider from "./MenuSlider";
+import SearchOverlay from "./SearchOverlay";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const isHome = pathname === "/";
 
   return (
@@ -49,18 +51,19 @@ export default function Navbar() {
               <button
                 type="button"
                 aria-label="Search"
+                onClick={() => setIsSearchOpen(true)}
                 className="opacity-90 transition-opacity duration-200 hover:opacity-100"
               >
                 <Search size={18} strokeWidth={1.9} className="sm:h-5 sm:w-5" />
               </button>
 
-              <button
-                type="button"
-                aria-label="User account"
-                className="opacity-90 transition-opacity duration-200 hover:opacity-100"
+              <Link
+                href="/admin/login"
+                aria-label="Admin sign in"
+                className="inline-flex opacity-90 transition-opacity duration-200 hover:opacity-100"
               >
                 <User size={18} strokeWidth={1.9} className="sm:h-5 sm:w-5" />
-              </button>
+              </Link>
 
               <Link
                 href={canonicalShopRoutes.collection}
@@ -77,6 +80,7 @@ export default function Navbar() {
       </header>
 
       <MenuSlider isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+      <SearchOverlay open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );
 }
