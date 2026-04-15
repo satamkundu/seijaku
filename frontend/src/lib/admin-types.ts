@@ -41,6 +41,8 @@ export type CollectionSummary = {
   updatedAt: string;
 };
 
+export type ProductWorkflowStatus = "DRAFT" | "PUBLISHED";
+
 export type ProductSummary = {
   id: string;
   slug: string;
@@ -53,6 +55,7 @@ export type ProductSummary = {
   priceAmount: number;
   currency: string;
   status: string;
+  workflowStatus: ProductWorkflowStatus;
   releaseDate: string | null;
   seoTitle: string | null;
   seoDescription: string | null;

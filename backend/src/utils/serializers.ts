@@ -11,6 +11,7 @@ export function serializeProduct(product: any) {
     priceAmount: product.priceAmount,
     currency: product.currency,
     status: product.status,
+    workflowStatus: product.workflowStatus,
     releaseDate: product.releaseDate?.toISOString() ?? null,
     seoTitle: product.seoTitle,
     seoDescription: product.seoDescription,

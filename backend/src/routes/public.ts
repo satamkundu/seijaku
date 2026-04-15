@@ -88,6 +88,9 @@ publicRouter.get(
 
     const products = await prisma.product.findMany({
       where: {
+        // Public catalog only returns PUBLISHED products. Draft products are
+        // admin-only and must be inspected through /admin/* endpoints.
+        workflowStatus: "PUBLISHED",
         ...(query.type ? { type: query.type } : {}),
         ...(query.material ? { material: query.material } : {}),
         ...(query.use_case ? { useCase: query.use_case } : {}),
@@ -147,7 +150,9 @@ publicRouter.get(
       include: productInclude,
     });
 
-    if (!product) {
+    // Treat DRAFT products as non-existent from the public perspective so a
+    // direct URL does not leak unpublished content.
+    if (!product || product.workflowStatus !== "PUBLISHED") {
       res.status(404).json({ error: "Product not found" });
       return;
     }
@@ -162,7 +167,10 @@ publicRouter.get(
     const page = await prisma.shopBridgePage.findUnique({
       where: { slug: routeParam(req, "slug") },
       include: {
+        // Omit DRAFT products from public bridge pages so the shop UI does not
+        // surface unpublished items through the bridge.
         products: {
+          where: { product: { workflowStatus: "PUBLISHED" } },
           include: {
             product: {
               include: productInclude,
@@ -292,7 +300,9 @@ publicRouter.post(
     const payload = parseBody(orderRequestSchema, req.body);
     const productSlugs = payload.items.map((item) => item.productSlug);
     const products = await prisma.product.findMany({
-      where: { slug: { in: productSlugs } },
+      // Only allow orders against PUBLISHED products; draft slugs are treated
+      // as non-existent from the public lead path.
+      where: { slug: { in: productSlugs }, workflowStatus: "PUBLISHED" },
     });
 
     const bySlug = new Map(products.map((product) => [product.slug, product]));

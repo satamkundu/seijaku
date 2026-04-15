@@ -1,4 +1,4 @@
-import { AdminRole, AdminStatus, CategoryKind, CollectionKind, MediaKind, Prisma, ProductMediaType, ProductStatus } from "@prisma/client";
+import { AdminRole, AdminStatus, CategoryKind, CollectionKind, MediaKind, Prisma, ProductMediaType, ProductStatus, ProductWorkflowStatus } from "@prisma/client";
 import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
@@ -97,6 +97,7 @@ const productInputSchema = z.object({
   priceAmount: z.number().int().nonnegative(),
   currency: z.string().default("INR"),
   status: z.nativeEnum(ProductStatus),
+  workflowStatus: z.nativeEnum(ProductWorkflowStatus).optional(),
   releaseDate: optionalDateTime,
   seoTitle: optionalString,
   seoDescription: optionalString,
@@ -290,12 +291,19 @@ function assertSuperAdmin(role?: AdminRole) {
   }
 }
 
-function assertCanManagePublishing(role: AdminRole | undefined, details: { status?: string | null; publishedAt?: string | null }) {
+function assertCanManagePublishing(
+  role: AdminRole | undefined,
+  details: { status?: string | null; publishedAt?: string | null; workflowStatus?: string | null }
+) {
   if (role === "SUPER_ADMIN") {
     return;
   }
 
-  if ((details.status && details.status !== "DRAFT") || details.publishedAt) {
+  if (
+    (details.status && details.status !== "DRAFT") ||
+    details.publishedAt ||
+    (details.workflowStatus && details.workflowStatus !== "DRAFT")
+  ) {
     throw new HttpError(403, "Only super admins can publish content");
   }
 }
@@ -621,13 +629,109 @@ adminRouter.delete(
 
 adminRouter.get(
   "/products",
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
+    const workflowParam = typeof req.query.workflow === "string" ? req.query.workflow : undefined;
+    const statusParam = typeof req.query.status === "string" ? req.query.status : undefined;
+    const searchParam = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
+    const categoryParam = typeof req.query.category === "string" ? req.query.category : undefined;
+
+    const where: Prisma.ProductWhereInput = {};
+
+    if (workflowParam && workflowParam !== "all") {
+      const normalized = workflowParam.toUpperCase() as ProductWorkflowStatus;
+      if (normalized in ProductWorkflowStatus) {
+        where.workflowStatus = normalized;
+      }
+    }
+
+    if (statusParam) {
+      const normalized = statusParam.toUpperCase().replace(/\s+/g, "_") as ProductStatus;
+      if (normalized in ProductStatus) {
+        where.status = normalized;
+      }
+    }
+
+    if (searchParam) {
+      where.OR = [
+        { title: { contains: searchParam, mode: "insensitive" } },
+        { slug: { contains: searchParam, mode: "insensitive" } },
+      ];
+    }
+
+    if (categoryParam) {
+      where.categories = { some: { category: { slug: categoryParam } } };
+    }
+
     const items = await prisma.product.findMany({
+      where,
       include: productInclude,
-      orderBy: { title: "asc" },
+      orderBy: { updatedAt: "desc" },
     });
 
-    res.json({ items: items.map(serializeProduct) });
+    // Counts per workflow bucket for the admin list UI ("All / Draft / Published" tabs).
+    const [draftCount, publishedCount] = await Promise.all([
+      prisma.product.count({ where: { workflowStatus: "DRAFT" } }),
+      prisma.product.count({ where: { workflowStatus: "PUBLISHED" } }),
+    ]);
+
+    res.json({
+      items: items.map(serializeProduct),
+      counts: {
+        all: draftCount + publishedCount,
+        draft: draftCount,
+        published: publishedCount,
+      },
+    });
+  })
+);
+
+const productBulkSchema = z.object({
+  action: z.enum(["publish", "unpublish", "delete"]),
+  ids: z.array(z.string().min(1)).min(1),
+});
+
+adminRouter.post(
+  "/products/bulk",
+  asyncHandler(async (req, res) => {
+    const payload = parseBody(productBulkSchema, req.body);
+
+    if (payload.action === "delete") {
+      // Deletes are SUPER_ADMIN-only, matching the single-delete route.
+      if (req.admin?.role !== "SUPER_ADMIN") {
+        throw new HttpError(403, "Only super admins can delete products");
+      }
+      await prisma.product.deleteMany({ where: { id: { in: payload.ids } } });
+      res.json({ ok: true, count: payload.ids.length });
+      return;
+    }
+
+    // Publish + unpublish require publishing privileges (same as single-product updates).
+    assertCanManagePublishing(req.admin?.role, {
+      workflowStatus: payload.action === "publish" ? "PUBLISHED" : "DRAFT",
+    });
+
+    const now = new Date();
+
+    if (payload.action === "publish") {
+      // Stamp publishedAt only for rows that don't have one yet, preserving
+      // first-publish semantics. Two-step because Prisma updateMany cannot
+      // express "set field only where currently null" inline.
+      await prisma.product.updateMany({
+        where: { id: { in: payload.ids }, publishedAt: null },
+        data: { publishedAt: now },
+      });
+      await prisma.product.updateMany({
+        where: { id: { in: payload.ids } },
+        data: { workflowStatus: "PUBLISHED" },
+      });
+    } else {
+      await prisma.product.updateMany({
+        where: { id: { in: payload.ids } },
+        data: { workflowStatus: "DRAFT" },
+      });
+    }
+
+    res.json({ ok: true, count: payload.ids.length });
   })
 );
 
@@ -651,7 +755,12 @@ adminRouter.post(
   "/products",
   asyncHandler(async (req, res) => {
     const payload = parseBody(productInputSchema, req.body);
-    assertCanManagePublishing(req.admin?.role, { publishedAt: payload.publishedAt });
+    assertCanManagePublishing(req.admin?.role, {
+      publishedAt: payload.publishedAt,
+      workflowStatus: payload.workflowStatus,
+    });
+
+    const isPublishing = payload.workflowStatus === "PUBLISHED";
 
     const item = await prisma.product.create({
       data: {
@@ -665,13 +774,19 @@ adminRouter.post(
         priceAmount: payload.priceAmount,
         currency: payload.currency,
         status: payload.status,
+        workflowStatus: payload.workflowStatus ?? "DRAFT",
         releaseDate: payload.releaseDate ? new Date(payload.releaseDate) : null,
         seoTitle: payload.seoTitle,
         seoDescription: payload.seoDescription,
         imageAlt: payload.imageAlt,
         ctaLabel: payload.ctaLabel,
         metadataJson: payload.metadata,
-        publishedAt: payload.publishedAt ? new Date(payload.publishedAt) : null,
+        // Auto-stamp publishedAt on first publish if not explicitly supplied.
+        publishedAt: payload.publishedAt
+          ? new Date(payload.publishedAt)
+          : isPublishing
+            ? new Date()
+            : null,
         primaryImageId: payload.primaryImageId,
       },
       include: productInclude,
@@ -685,10 +800,31 @@ adminRouter.patch(
   "/products/:id",
   asyncHandler(async (req, res) => {
     const payload = parseBody(productInputSchema.partial(), req.body);
-    assertCanManagePublishing(req.admin?.role, { publishedAt: payload.publishedAt ?? undefined });
+    assertCanManagePublishing(req.admin?.role, {
+      publishedAt: payload.publishedAt ?? undefined,
+      workflowStatus: payload.workflowStatus ?? undefined,
+    });
+
+    const id = routeParam(req, "id")!;
+
+    // If caller is transitioning to PUBLISHED and did not explicitly supply
+    // publishedAt, stamp it with now() on first publish (leave untouched if
+    // the product was already published before).
+    let publishedAtUpdate: Prisma.ProductUpdateInput["publishedAt"] = undefined;
+    if (payload.publishedAt !== undefined) {
+      publishedAtUpdate = payload.publishedAt ? new Date(payload.publishedAt) : null;
+    } else if (payload.workflowStatus === "PUBLISHED") {
+      const existing = await prisma.product.findUnique({
+        where: { id },
+        select: { publishedAt: true },
+      });
+      if (existing && !existing.publishedAt) {
+        publishedAtUpdate = new Date();
+      }
+    }
 
     const item = await prisma.product.update({
-      where: { id: routeParam(req, "id") },
+      where: { id },
       data: {
         ...(payload.slug !== undefined ? { slug: payload.slug } : {}),
         ...(payload.title !== undefined ? { title: payload.title } : {}),
@@ -700,13 +836,14 @@ adminRouter.patch(
         ...(payload.priceAmount !== undefined ? { priceAmount: payload.priceAmount } : {}),
         ...(payload.currency !== undefined ? { currency: payload.currency } : {}),
         ...(payload.status !== undefined ? { status: payload.status } : {}),
+        ...(payload.workflowStatus !== undefined ? { workflowStatus: payload.workflowStatus } : {}),
         ...(payload.releaseDate !== undefined ? { releaseDate: payload.releaseDate ? new Date(payload.releaseDate) : null } : {}),
         ...(payload.seoTitle !== undefined ? { seoTitle: payload.seoTitle } : {}),
         ...(payload.seoDescription !== undefined ? { seoDescription: payload.seoDescription } : {}),
         ...(payload.imageAlt !== undefined ? { imageAlt: payload.imageAlt } : {}),
         ...(payload.ctaLabel !== undefined ? { ctaLabel: payload.ctaLabel } : {}),
         ...(payload.metadata !== undefined ? { metadataJson: payload.metadata } : {}),
-        ...(payload.publishedAt !== undefined ? { publishedAt: payload.publishedAt ? new Date(payload.publishedAt) : null } : {}),
+        ...(publishedAtUpdate !== undefined ? { publishedAt: publishedAtUpdate } : {}),
         ...(payload.primaryImageId !== undefined ? { primaryImageId: payload.primaryImageId } : {}),
       },
       include: productInclude,
