@@ -80,39 +80,12 @@ async function storeInS3(fileName: string, buffer: Buffer, contentType?: string)
   } satisfies StoredUpload;
 }
 
-async function storeInVercelBlob(
-  fileName: string,
-  buffer: Buffer,
-  contentType?: string
-): Promise<StoredUpload> {
-  if (!env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error("Vercel Blob storage is configured without BLOB_READ_WRITE_TOKEN");
-  }
-
-  // Dynamic import so the @vercel/blob module does not execute during
-  // serverless cold start for functions that never touch Blob storage.
-  const { put: blobPut } = await import("@vercel/blob");
-
-  const result = await blobPut(fileName, buffer, {
-    access: "public",
-    contentType,
-    token: env.BLOB_READ_WRITE_TOKEN,
-    addRandomSuffix: false,
-  });
-
-  return { url: result.url } satisfies StoredUpload;
-}
-
 export async function storeUpload(args: {
   buffer: Buffer;
   contentType?: string;
   originalName: string;
 }): Promise<StoredUpload> {
   const fileName = resolveFileName(args.originalName);
-
-  if (env.STORAGE_DRIVER === "vercel-blob") {
-    return storeInVercelBlob(fileName, args.buffer, args.contentType);
-  }
 
   if (env.STORAGE_DRIVER === "s3") {
     return storeInS3(fileName, args.buffer, args.contentType);

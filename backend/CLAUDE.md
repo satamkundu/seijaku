@@ -94,20 +94,19 @@ Required: `DATABASE_URL`, `JWT_SECRET` (min 8 chars).
 
 Common: `PORT`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN` (comma-separated), `PUBLIC_BASE_URL`.
 
-Storage: `STORAGE_DRIVER` (`local` | `s3` | `vercel-blob`), `LOCAL_UPLOAD_DIR`.
+Storage: `STORAGE_DRIVER` (`local` | `s3`), `LOCAL_UPLOAD_DIR`.
 - When `s3`: `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`.
-- When `vercel-blob`: `BLOB_READ_WRITE_TOKEN` (auto-injected by the Vercel Blob store connection — do not set manually in prod).
 
 Prod (Neon integration): adds `POSTGRES_*` and `PG*` variants automatically; the app reads `DATABASE_URL` for runtime and `DATABASE_URL_UNPOOLED` / `POSTGRES_URL_NON_POOLING` for migrations during the build hook.
 
-Current prod wiring: `STORAGE_DRIVER=vercel-blob`, `CORS_ORIGIN=https://seijaku-kappa.vercel.app`.
+Current prod wiring: `CORS_ORIGIN=https://seijaku-kappa.vercel.app`. Storage is unresolved — see root `CLAUDE.md` for context.
 
 ## Vercel Deployment
 
 - Project `seijaku-backend`, Root Directory `backend/`.
 - `backend/vercel.json` builds `api/index.ts` with `@vercel/node` and routes every request to it. That means the entire Express app runs inside one serverless function.
 - Cold starts are noticeable. Don't add top-level sync filesystem work in `app.ts` beyond what's there.
-- In prod, `STORAGE_DRIVER=local` is unusable because the filesystem is ephemeral. Production uses `vercel-blob`; keep it that way unless consciously switching providers.
+- In prod, `STORAGE_DRIVER=local` is unusable because the filesystem is ephemeral. Production is currently on `local` by default — this is known-broken for admin media uploads. S3 driver is wired and ready once credentials are provisioned.
 - Migrations are auto-applied on Production deploys via `vercel-build` (see "Vercel Build Hook" above). Run `prisma:deploy` manually only when bypassing Vercel (e.g., emergency migration from a local machine against the prod URL).
 
 ## Patterns To Follow

@@ -197,14 +197,14 @@ Frontend project:
 Backend project:
 
 - root directory: `backend/`
-- production env: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN`, `STORAGE_DRIVER`, `BLOB_READ_WRITE_TOKEN` (auto-injected by the connected Vercel Blob store)
-- optional S3-driver envs available if ever switching off Vercel Blob
+- production env: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN`
+- optional S3-driver envs once object storage is provisioned
 
 For production data:
 
 - Prisma migrations run automatically on Production builds via `backend/scripts/vercel-build.sh`; no manual step needed per deploy
 - run `npm run prisma:seed` in `backend/` only for initial bootstrap; treat the seed as destructive for non-empty DBs
-- media uploads persist through Vercel Blob (`seijaku-media-prod` store); do not rely on local filesystem in production
+- media uploads are currently unresolved in production; S3-compatible storage is a Tier-1 follow-up
 
 Current note:
 
