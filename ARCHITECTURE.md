@@ -261,7 +261,16 @@ The repo now uses an npm workspace layout:
 - `backend/`
 - docs and workspace tooling at the repo root
 
-This separation is deliberate. It keeps frontend builds from typechecking backend code, makes Vercel root-directory configuration explicit, and allows the frontend to build independently.
+This separation is deliberate. It keeps frontend builds from typechecking backend code, makes root-directory configuration explicit on both Vercel (frontend) and Render (backend), and allows each to build independently.
+
+## Deployment Topology
+
+- Frontend → Vercel (`seijaku` project, Root Directory `frontend/`). Auto-deploys on push to `main`. Custom domain `www.seijaku.co` + `.vercel.app` alias.
+- Backend → Render Free (`seijaku-backend` service, Root Directory `backend/`). Auto-deploys on push to `main`. Build command includes `prisma migrate deploy` so migrations land with every deploy. Free tier sleeps after 15 min idle; first request after idle waits 30-50s.
+- Database → Neon Postgres (shared across env scopes today; no per-branch DB yet).
+- Object storage → Supabase Storage (S3-compatible), bucket `seijaku-media-prod`. Accessed via the existing S3 driver in `backend/src/lib/storage.ts`; swapping to R2/B2/AWS is env-var-only.
+
+The backend used to be a Vercel serverless function. That didn't work reliably for this Express app — see `DECISIONS.md#13` for why we moved.
 
 ## Content Architecture
 

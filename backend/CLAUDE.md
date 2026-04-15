@@ -4,11 +4,11 @@ Complements the repo-root `CLAUDE.md`. Read that first.
 
 ## Stack
 
-Express 4, Prisma 6, PostgreSQL (Neon in prod), Zod, JWT, bcryptjs, multer, morgan. TypeScript ESM with `"module": "NodeNext"`. Runs via `tsx watch` in dev, compiled to `dist/` for prod. Deploys to Vercel as a single serverless function (`api/index.ts`).
+Express 4, Prisma 6, PostgreSQL (Neon in prod), Zod, JWT, bcryptjs, multer, morgan. TypeScript ESM with `"module": "NodeNext"`. Runs via `tsx watch` in dev, compiled to `dist/` via `tsc`, served as a long-running Node process on Render in production.
 
 ## Key Paths
 
-- `src/server.ts` — entry; starts Express on `PORT` (default 4001)
+- `src/server.ts` — entry; starts Express on `PORT` (default 4001; Render injects one automatically in prod)
 - `src/app.ts` — middleware chain (cors → json → morgan → optional `/uploads` static → `/health` → public router → `/admin` router → error middleware)
 - `src/config.ts` — Zod-validated env loader; fail-fast on missing `DATABASE_URL` or short `JWT_SECRET`
 - `src/routes/public.ts` — unauthenticated catalog/content reads + lead writes
@@ -16,13 +16,12 @@ Express 4, Prisma 6, PostgreSQL (Neon in prod), Zod, JWT, bcryptjs, multer, morg
 - `src/middleware/requireAdmin.ts` — verifies JWT, attaches admin to `req`, exports `requireAdmin` and `requireAdminRole`
 - `src/lib/auth.ts` — `signAdminToken`, `verifyPassword`, `hashPassword` (bcrypt)
 - `src/lib/prisma.ts` — shared Prisma client (singleton)
-- `src/lib/storage.ts` — upload handling, local vs S3 driver switch
+- `src/lib/storage.ts` — upload handling, local/S3 driver switch with lazy-loaded AWS SDK
 - `src/utils/http.ts` — `asyncHandler`, `HttpError`, `parseBody`, error middleware
 - `src/utils/serializers.ts` — Prisma record → API payload shape (keep admin and public shapes in sync)
 - `prisma/schema.prisma` — enums + models
 - `prisma/migrations/0001_init/` — initial SQL
 - `prisma/seed.ts` — imports current frontend content into the DB so admin starts with realistic data
-- `api/index.ts` — Vercel serverless entry; re-exports the Express app
 
 ## ESM Rules (important)
 
@@ -33,6 +32,7 @@ Express 4, Prisma 6, PostgreSQL (Neon in prod), Zod, JWT, bcryptjs, multer, morg
   ```
 - `package.json` has `"type": "module"`. No CommonJS `require()`.
 - Prisma is excluded from the TS build (`prisma/**/*.ts` in `tsconfig.exclude`); `seed.ts` runs through `tsx`, not `tsc`.
+- `tsconfig.json` has `rootDir: "src"`, `outDir: "dist"`. Compiled entry lands at `dist/server.js` (matching `"start": "node dist/server.js"`).
 
 ## Auth Flow
 
@@ -66,48 +66,37 @@ npm run dev                               # tsx watch on :4001
 # prisma
 npm run prisma:generate                   # regen client
 npm run prisma:migrate -- --name <name>   # new migration
-npm run prisma:deploy                     # apply pending migrations (manual, usually not needed — see vercel-build)
+npm run prisma:deploy                     # apply pending migrations (also runs in Render build)
 npm run prisma:seed                       # run prisma/seed.ts
 
 # build
-npm run build                             # local: prisma generate + tsc → dist/ (NEVER touches a remote DB)
-npm run vercel-build                      # Vercel-only: generate + tsc + (on production) prisma migrate deploy
-npm run start                             # node dist/server.js
+npm run build                             # prisma generate + tsc → dist/
+npm run start                             # node dist/server.js (what Render invokes)
 ```
 
-## Vercel Build Hook
+## Render Deployment
 
-`scripts/vercel-build.sh` is wired as `npm run vercel-build` and runs on every Vercel build. It:
-
-1. Runs `prisma generate` (needed for the bundled client).
-2. Runs `tsc -p tsconfig.json`.
-3. **On Production only** (`VERCEL_ENV=production`): runs `prisma migrate deploy` using `DATABASE_URL_UNPOOLED` → `POSTGRES_URL_NON_POOLING` → `DATABASE_URL` (first one set). Preview and Development builds skip this step.
-
-Rules:
-- A failed migration fails the build. Vercel keeps serving the previous function. Fix forward with a new migration.
-- Long-running / locking DDL should be audited before merge — the Vercel build will block on it against live prod traffic.
-- Do **not** remove the `VERCEL_ENV=production` guard. Running migrations from a feature-branch Preview would migrate the shared prod DB without a merge to `main`.
+- Service: `seijaku-backend` on Render Free tier
+- Region: closest to Neon US-East
+- Root Directory: `backend/`
+- **Build Command**: `npm install && npm run build && npm run prisma:deploy`
+  - Runs prisma generate, compiles TypeScript, applies pending migrations against prod Neon DB. A failed migration fails the deploy; the previous process keeps serving.
+- **Start Command**: `npm start`
+- **Auto-deploys on push to `main`**.
+- **Free tier caveat**: sleeps after 15 min of inactivity; first request after idle waits 30-50s for wake-up. Public image reads go directly to Supabase (CDN) so they're unaffected; only backend-routed requests (admin, lead submissions, backend-fed content reads) feel the wake-up.
 
 ## Env Vars
 
 Required: `DATABASE_URL`, `JWT_SECRET` (min 8 chars).
 
-Common: `PORT`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN` (comma-separated), `PUBLIC_BASE_URL`.
+Common: `PORT` (auto-provided by Render), `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN` (comma-separated), `PUBLIC_BASE_URL`.
 
 Storage: `STORAGE_DRIVER` (`local` | `s3`), `LOCAL_UPLOAD_DIR`.
-- When `s3`: `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`.
+- When `s3` (current prod): `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`.
 
-Prod (Neon integration): adds `POSTGRES_*` and `PG*` variants automatically; the app reads `DATABASE_URL` for runtime and `DATABASE_URL_UNPOOLED` / `POSTGRES_URL_NON_POOLING` for migrations during the build hook.
+Migrations: the Render build command uses `DATABASE_URL` for `prisma migrate deploy`. If pooled vs direct connection ever matters (e.g., a migration that needs a direct connection against PgBouncer-pooled Neon URLs), add `DATABASE_URL_UNPOOLED` and update the build command to use it explicitly.
 
-Current prod wiring: `CORS_ORIGIN=https://seijaku-kappa.vercel.app`. Storage is unresolved — see root `CLAUDE.md` for context.
-
-## Vercel Deployment
-
-- Project `seijaku-backend`, Root Directory `backend/`.
-- `backend/vercel.json` builds `api/index.ts` with `@vercel/node` and routes every request to it. That means the entire Express app runs inside one serverless function.
-- Cold starts are noticeable. Don't add top-level sync filesystem work in `app.ts` beyond what's there.
-- In prod, `STORAGE_DRIVER=local` is unusable because the filesystem is ephemeral. Production is currently on `local` by default — this is known-broken for admin media uploads. S3 driver is wired and ready once credentials are provisioned.
-- Migrations are auto-applied on Production deploys via `vercel-build` (see "Vercel Build Hook" above). Run `prisma:deploy` manually only when bypassing Vercel (e.g., emergency migration from a local machine against the prod URL).
+Current prod wiring: `STORAGE_DRIVER=s3` pointing at Supabase; `CORS_ORIGIN=https://seijaku-kappa.vercel.app`.
 
 ## Patterns To Follow
 
@@ -116,6 +105,7 @@ Current prod wiring: `CORS_ORIGIN=https://seijaku-kappa.vercel.app`. Storage is 
 - Throw `new HttpError(status, message)` for expected failures. The error middleware formats them. Don't `res.status(...).json(...)` your own errors — keep the shape consistent.
 - Wrap async handlers with `asyncHandler()` so rejections hit the error middleware instead of hanging.
 - Use `parseBody(schema, req)` for Zod-validated request bodies; it throws a 400 on validation error.
+- Heavy dependencies (like `@aws-sdk/client-s3`) should be lazy-loaded inside the function that uses them, not imported at module top level, to keep startup fast.
 
 ## Common Gotchas
 
@@ -123,3 +113,4 @@ Current prod wiring: `CORS_ORIGIN=https://seijaku-kappa.vercel.app`. Storage is 
 - CORS defaults to reflect any origin when `CORS_ORIGIN` is unset — lock this down in prod by setting the env var.
 - Prisma client is excluded from the TS source tree but is required at runtime. `postinstall` generates it — don't remove that script.
 - The seed is destructive-ish (upserts bootstrap admin, (re)creates content). Don't run it against a populated prod DB without reading `prisma/seed.ts` first.
+- Render Free sleeps on idle. If you care about first-request latency for real users, upgrade the Render instance OR add a keep-warm cron.

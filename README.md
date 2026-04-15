@@ -187,29 +187,39 @@ Next admin/session boundary:
 - On machines where local PostgreSQL needs a custom socket-based `DATABASE_URL`, the root `npm run dev:backend` script will use `backend/run-backend.local.sh` when that ignored helper exists.
 - The backend seeds a bootstrap admin from env values; treat that as setup-only, not a permanent shared credential model.
 
-## Vercel Deployment Model
+## Deployment Model
 
-Frontend project:
+Frontend: **Vercel** (project `seijaku`, Root Directory `frontend/`)
 
-- root directory: `frontend/`
-- production env: `BACKEND_INTERNAL_URL`, `ADMIN_COOKIE_SECRET`
+- Production aliases: `https://www.seijaku.co` and `https://seijaku-kappa.vercel.app`
+- Production env: `BACKEND_INTERNAL_URL` (points at Render backend), `ADMIN_COOKIE_SECRET`
+- Auto-deploys on push to `main`
 
-Backend project:
+Backend: **Render Free** (service `seijaku-backend`, Root Directory `backend/`)
 
-- root directory: `backend/`
-- production env: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN`
-- optional S3-driver envs once object storage is provisioned
+- Production URL: `https://seijaku-backend.onrender.com`
+- Build command: `npm install && npm run build && npm run prisma:deploy` (migrations run on every deploy)
+- Start command: `npm start`
+- Production env: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN`, `STORAGE_DRIVER=s3`, all `S3_*` vars
+- Free tier sleeps after 15 min of inactivity; first request after idle waits 30-50s to wake
+
+Database: **Neon Postgres**
+- Pooled URL in `DATABASE_URL`; direct URL in `DATABASE_URL_UNPOOLED` (used for migrations if we ever need it)
+
+Object storage: **Supabase Storage** (S3-compatible)
+- Bucket `seijaku-media-prod`, public-read
+- Accessed via the S3 driver in `backend/src/lib/storage.ts`
+- Uploaded URLs: `https://<project-ref>.supabase.co/storage/v1/object/public/seijaku-media-prod/<filename>`
 
 For production data:
 
-- Prisma migrations run automatically on Production builds via `backend/scripts/vercel-build.sh`; no manual step needed per deploy
+- Prisma migrations run automatically on Render deploy via the build command; no manual step per deploy
 - run `npm run prisma:seed` in `backend/` only for initial bootstrap; treat the seed as destructive for non-empty DBs
-- media uploads are currently unresolved in production; S3-compatible storage is a Tier-1 follow-up
 
 Current note:
 
-- the Vercel frontend project uses `frontend/` as Root Directory; the root `npm run build` script remains frontend-only as a convenience for historical callers
-- use `npm run build:all` when you want the local repo to validate both frontend and backend together
+- The root `npm run build` builds frontend only (convenience for historical callers). Use `npm run build:all` for local validation of both workspaces.
+- `@aws-sdk/client-s3` is lazy-loaded to keep startup fast.
 
 ## GitHub CLI In This Repo
 
