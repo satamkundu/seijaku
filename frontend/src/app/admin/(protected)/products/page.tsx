@@ -1,42 +1,61 @@
 import Link from "next/link";
 
-import AdminCard from "@/src/components/admin/AdminCard";
 import AdminPage from "@/src/components/admin/AdminPage";
-import AdminStatusBadge from "@/src/components/admin/AdminStatusBadge";
+import ProductTable from "@/src/components/admin/ProductTable";
 import { adminSecondaryButtonClassName } from "@/src/components/admin/AdminField";
 import { adminBackendJson } from "@/src/lib/admin-backend";
+import { requireCurrentAdmin } from "@/src/lib/admin-session";
 import type { ProductSummary } from "@/src/lib/admin-types";
 
-export default async function ProductsPage() {
-  const data = await adminBackendJson<{ items: ProductSummary[] }>("/products");
+type WorkflowFilter = "all" | "draft" | "published";
+
+type ProductsPageProps = {
+  searchParams: Promise<{
+    workflow?: string;
+    search?: string;
+  }>;
+};
+
+type ProductsResponse = {
+  items: ProductSummary[];
+  counts: { all: number; draft: number; published: number };
+};
+
+function normalizeWorkflow(value: string | undefined): WorkflowFilter {
+  if (value === "draft" || value === "published") return value;
+  return "all";
+}
+
+export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  const { admin } = await requireCurrentAdmin();
+  const params = await searchParams;
+  const workflow = normalizeWorkflow(params.workflow);
+  const search = params.search?.trim() ?? "";
+
+  const query = new URLSearchParams();
+  if (workflow !== "all") query.set("workflow", workflow);
+  if (search) query.set("search", search);
+  const querySuffix = query.toString();
+
+  const data = await adminBackendJson<ProductsResponse>(`/products${querySuffix ? `?${querySuffix}` : ""}`);
 
   return (
     <AdminPage
       title="Products"
-      description="Manage the core shop catalog, then open a product to configure options, media, categories, collections, and bridge page placement."
+      description="Browse and manage the shop catalog. Filter by publish workflow, search by title or slug, and use bulk actions to publish, unpublish, or delete multiple products at once."
       action={
         <Link href="/admin/products/new" className={adminSecondaryButtonClassName}>
           New product
         </Link>
       }
     >
-      <div className="grid gap-4">
-        {data.items.map((item) => (
-          <AdminCard key={item.id} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[#8a7e71]">{item.slug}</p>
-              <h2 className="mt-3 text-[24px]">{item.title}</h2>
-              <p className="mt-3 max-w-[52ch] text-[14px] leading-[1.8] text-[#62574c]">{item.shortDescription || item.longDescription || "No description yet."}</p>
-            </div>
-            <div className="flex flex-col items-start gap-4 sm:items-end">
-              <AdminStatusBadge value={item.status} />
-              <Link href={`/admin/products/${item.id}`} className={adminSecondaryButtonClassName}>
-                Edit product
-              </Link>
-            </div>
-          </AdminCard>
-        ))}
-      </div>
+      <ProductTable
+        items={data.items}
+        counts={data.counts}
+        canDelete={admin.role === "SUPER_ADMIN"}
+        currentWorkflow={workflow}
+        currentSearch={search}
+      />
     </AdminPage>
   );
 }
