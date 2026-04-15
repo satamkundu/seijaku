@@ -82,16 +82,11 @@ Common local config:
 
 Storage config:
 
-- `STORAGE_DRIVER=local|s3`
+- `STORAGE_DRIVER=local|s3|vercel-blob`
 - `LOCAL_UPLOAD_DIR`
 - `PUBLIC_BASE_URL`
-- `S3_BUCKET`
-- `S3_REGION`
-- `S3_ENDPOINT`
-- `S3_ACCESS_KEY_ID`
-- `S3_SECRET_ACCESS_KEY`
-- `S3_FORCE_PATH_STYLE`
-- `S3_PUBLIC_URL_BASE`
+- S3 driver: `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`
+- Vercel Blob driver: `BLOB_READ_WRITE_TOKEN` (auto-injected when a Vercel Blob store is connected to the project)
 
 ## Health Check
 
