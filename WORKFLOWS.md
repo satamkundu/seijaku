@@ -105,7 +105,9 @@ Backend build:
 npm run build:backend
 ```
 
-That backend build path now runs Prisma client generation before TypeScript compile, which keeps clean installs and future backend deployments from failing on a missing generated client.
+That backend build path runs Prisma client generation before TypeScript compile, which keeps clean installs and future backend deployments from failing on a missing generated client. **Local `npm run build:backend` never touches a remote database.**
+
+On Vercel, the backend uses `scripts/vercel-build.sh` (invoked as `npm run vercel-build`). On Production builds only, that script runs `prisma migrate deploy` against the unpooled Postgres URL after generate + compile. Preview and Development Vercel builds skip the migrate step. To run migrations manually against prod from a local machine (emergency only), cd into `backend/` and run `npx prisma migrate deploy` with `DATABASE_URL` pointed at the unpooled Neon URL.
 
 Full frontend + backend validation from the repo root:
 

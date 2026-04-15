@@ -197,18 +197,18 @@ Frontend project:
 Backend project:
 
 - root directory: `backend/`
-- production env: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
-- storage envs for S3-compatible uploads if media uploads are enabled in production
+- production env: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGIN`, `STORAGE_DRIVER`, `BLOB_READ_WRITE_TOKEN` (auto-injected by the connected Vercel Blob store)
+- optional S3-driver envs available if ever switching off Vercel Blob
 
 For production data:
 
-- run `npm run prisma:deploy` in `backend/`
-- run `npm run prisma:seed` in `backend/`
-- do not rely on local filesystem uploads in production
+- Prisma migrations run automatically on Production builds via `backend/scripts/vercel-build.sh`; no manual step needed per deploy
+- run `npm run prisma:seed` in `backend/` only for initial bootstrap; treat the seed as destructive for non-empty DBs
+- media uploads persist through Vercel Blob (`seijaku-media-prod` store); do not rely on local filesystem in production
 
 Current note:
 
-- the existing Vercel frontend project still builds from the repo root today, so the root `npm run build` command is intentionally frontend-only
+- the Vercel frontend project uses `frontend/` as Root Directory; the root `npm run build` script remains frontend-only as a convenience for historical callers
 - use `npm run build:all` when you want the local repo to validate both frontend and backend together
 
 ## GitHub CLI In This Repo

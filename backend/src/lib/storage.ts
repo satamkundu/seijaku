@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { put as blobPut } from "@vercel/blob";
 
 import { env } from "../config.js";
 
@@ -80,12 +81,35 @@ async function storeInS3(fileName: string, buffer: Buffer, contentType?: string)
   } satisfies StoredUpload;
 }
 
+async function storeInVercelBlob(
+  fileName: string,
+  buffer: Buffer,
+  contentType?: string
+): Promise<StoredUpload> {
+  if (!env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("Vercel Blob storage is configured without BLOB_READ_WRITE_TOKEN");
+  }
+
+  const result = await blobPut(fileName, buffer, {
+    access: "public",
+    contentType,
+    token: env.BLOB_READ_WRITE_TOKEN,
+    addRandomSuffix: false,
+  });
+
+  return { url: result.url } satisfies StoredUpload;
+}
+
 export async function storeUpload(args: {
   buffer: Buffer;
   contentType?: string;
   originalName: string;
 }): Promise<StoredUpload> {
   const fileName = resolveFileName(args.originalName);
+
+  if (env.STORAGE_DRIVER === "vercel-blob") {
+    return storeInVercelBlob(fileName, args.buffer, args.contentType);
+  }
 
   if (env.STORAGE_DRIVER === "s3") {
     return storeInS3(fileName, args.buffer, args.contentType);
