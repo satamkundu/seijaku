@@ -3,7 +3,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { put as blobPut } from "@vercel/blob";
 
 import { env } from "../config.js";
 
@@ -89,6 +88,10 @@ async function storeInVercelBlob(
   if (!env.BLOB_READ_WRITE_TOKEN) {
     throw new Error("Vercel Blob storage is configured without BLOB_READ_WRITE_TOKEN");
   }
+
+  // Dynamic import so the @vercel/blob module does not execute during
+  // serverless cold start for functions that never touch Blob storage.
+  const { put: blobPut } = await import("@vercel/blob");
 
   const result = await blobPut(fileName, buffer, {
     access: "public",
