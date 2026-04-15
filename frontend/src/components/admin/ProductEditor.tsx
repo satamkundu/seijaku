@@ -1,13 +1,30 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
+import AddMediaDialog from "@/src/components/admin/AddMediaDialog";
 import AdminCard from "@/src/components/admin/AdminCard";
-import { AdminField, adminButtonClassName, adminDangerButtonClassName, adminInputClassName, adminSecondaryButtonClassName, adminTextareaClassName } from "@/src/components/admin/AdminField";
 import AdminStatusBadge from "@/src/components/admin/AdminStatusBadge";
-import type { BridgePage, CollectionSummary, MediaAsset, ProductCategory, ProductSummary } from "@/src/lib/admin-types";
+import {
+  AdminField,
+  adminButtonClassName,
+  adminDangerButtonClassName,
+  adminInputClassName,
+  adminSecondaryButtonClassName,
+  adminTextareaClassName,
+} from "@/src/components/admin/AdminField";
+import MediaGallery, { type GalleryItem } from "@/src/components/admin/MediaGallery";
+import type {
+  BridgePage,
+  CollectionSummary,
+  MediaAsset,
+  ProductCategory,
+  ProductSummary,
+  ProductWorkflowStatus,
+} from "@/src/lib/admin-types";
 
 type ProductEditorProps = {
   product: ProductSummary | null;
@@ -34,8 +51,15 @@ type ProductOptionDraft = {
   }>;
 };
 
-const tabs = ["Core", "Media", "Options", "Categories", "Collections", "Bridge Pages", "Advanced"] as const;
-type ProductTab = (typeof tabs)[number];
+const stockStatusOptions = [
+  "IN_STOCK",
+  "LIMITED_EDITION",
+  "UPCOMING",
+  "OPEN_FOR_BOOKING",
+  "SOLD_OUT",
+  "WAITLIST",
+  "BOOKING_OPEN",
+];
 
 function buildCoreState(product: ProductSummary | null) {
   return {
@@ -49,12 +73,12 @@ function buildCoreState(product: ProductSummary | null) {
     priceAmount: product?.priceAmount ?? 0,
     currency: product?.currency ?? "INR",
     status: product?.status ?? "IN_STOCK",
+    workflowStatus: (product?.workflowStatus ?? "DRAFT") as ProductWorkflowStatus,
     releaseDate: product?.releaseDate ? product.releaseDate.slice(0, 16) : "",
     seoTitle: product?.seoTitle ?? "",
     seoDescription: product?.seoDescription ?? "",
     imageAlt: product?.imageAlt ?? "",
     ctaLabel: product?.ctaLabel ?? "",
-    publishedAt: product?.publishedAt ? product.publishedAt.slice(0, 16) : "",
   };
 }
 
@@ -64,7 +88,10 @@ function buildAdvancedState(product: ProductSummary | null) {
   };
 }
 
-function buildMediaState(product: ProductSummary | null) {
+function buildMediaState(product: ProductSummary | null): {
+  primaryImageId: string;
+  items: GalleryItem[];
+} {
   return {
     primaryImageId: product?.primaryImage?.id ?? "",
     items:
@@ -77,10 +104,7 @@ function buildMediaState(product: ProductSummary | null) {
 }
 
 function buildAssignmentState(entries: Array<{ id: string; sortOrder: number }>) {
-  return entries.map((entry) => ({
-    id: entry.id,
-    sortOrder: entry.sortOrder,
-  }));
+  return entries.map((entry) => ({ id: entry.id, sortOrder: entry.sortOrder }));
 }
 
 function buildOptionsState(product: ProductSummary | null): ProductOptionDraft[] {
@@ -103,9 +127,18 @@ function buildOptionsState(product: ProductSummary | null): ProductOptionDraft[]
   );
 }
 
-export default function ProductEditor({ product, media, categories, collections, bridgePages, canDelete }: ProductEditorProps) {
+export default function ProductEditor({
+  product,
+  media,
+  categories,
+  collections,
+  bridgePages,
+  canDelete,
+}: ProductEditorProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProductTab>("Core");
+  // Re-mount via key in the page component would be the "correct" way to reset
+  // state when product changes, but we keep the old useEffect-sync pattern to
+  // preserve behavior (e.g. staying on the same route after save + refresh).
   const [core, setCore] = useState(buildCoreState(product));
   const [advanced, setAdvanced] = useState(buildAdvancedState(product));
   const [mediaState, setMediaState] = useState(buildMediaState(product));
@@ -115,8 +148,17 @@ export default function ProductEditor({ product, media, categories, collections,
   const [options, setOptions] = useState<ProductOptionDraft[]>(buildOptionsState(product));
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [addMediaOpen, setAddMediaOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const isExistingProduct = Boolean(product?.id);
+  const productId = product?.id ?? null;
+
+  // Re-sync local state when the server component passes in a new product
+  // snapshot (after router.refresh()). eslint flags setState-in-effect; the
+  // cleaner fix would be a key-based remount on the parent, which is a
+  // larger refactor deferred for now.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setCore(buildCoreState(product));
     setAdvanced(buildAdvancedState(product));
@@ -126,15 +168,50 @@ export default function ProductEditor({ product, media, categories, collections,
     setBridgeAssignments(buildAssignmentState(product?.bridgePages ?? []));
     setOptions(buildOptionsState(product));
   }, [product]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  const isExistingProduct = Boolean(product?.id);
+  const assetIndex = useMemo(() => {
+    const map = new Map<string, MediaAsset>();
+    for (const asset of media) map.set(asset.id, asset);
+    // Also index assets referenced by the current product in case they aren't
+    // in the paginated library (shouldn't happen today, but future-proof).
+    if (product) {
+      if (product.primaryImage) {
+        map.set(product.primaryImage.id, {
+          id: product.primaryImage.id,
+          url: product.primaryImage.url,
+          altText: product.primaryImage.altText,
+          kind: "IMAGE",
+          width: null,
+          height: null,
+          createdAt: "",
+        });
+      }
+      for (const m of product.media) {
+        if (!map.has(m.asset.id)) {
+          map.set(m.asset.id, {
+            id: m.asset.id,
+            url: m.asset.url,
+            altText: m.asset.altText,
+            kind: m.asset.kind as MediaAsset["kind"],
+            width: null,
+            height: null,
+            createdAt: "",
+          });
+        }
+      }
+    }
+    return map;
+  }, [media, product]);
 
-  const selectedMediaIds = useMemo(() => new Set(mediaState.items.map((item) => item.mediaAssetId)), [mediaState.items]);
-  const selectedCategoryIds = useMemo(() => new Set(categoryAssignments.map((item) => item.id)), [categoryAssignments]);
-  const selectedCollectionIds = useMemo(() => new Set(collectionAssignments.map((item) => item.id)), [collectionAssignments]);
-  const selectedBridgePageIds = useMemo(() => new Set(bridgeAssignments.map((item) => item.id)), [bridgeAssignments]);
+  const selectedMediaIds = useMemo(() => new Set(mediaState.items.map((i) => i.mediaAssetId)), [mediaState.items]);
+  const selectedCategoryIds = useMemo(() => new Set(categoryAssignments.map((i) => i.id)), [categoryAssignments]);
+  const selectedCollectionIds = useMemo(() => new Set(collectionAssignments.map((i) => i.id)), [collectionAssignments]);
+  const selectedBridgePageIds = useMemo(() => new Set(bridgeAssignments.map((i) => i.id)), [bridgeAssignments]);
 
-  const persistCore = () => {
+  // --- PERSIST HANDLERS ---
+
+  const persistCore = (overrides?: { workflowStatus?: ProductWorkflowStatus }) => {
     startTransition(async () => {
       setNotice(null);
       setError(null);
@@ -149,31 +226,34 @@ export default function ProductEditor({ product, media, categories, collections,
         }
       }
 
+      const effectiveWorkflow = overrides?.workflowStatus ?? core.workflowStatus;
+
       const payload = {
         ...core,
+        workflowStatus: effectiveWorkflow,
         priceAmount: Number(core.priceAmount),
         releaseDate: core.releaseDate ? new Date(core.releaseDate).toISOString() : null,
-        publishedAt: core.publishedAt ? new Date(core.publishedAt).toISOString() : null,
         metadata,
         primaryImageId: mediaState.primaryImageId || null,
       };
 
-      const response = await fetch(isExistingProduct ? `/api/admin/proxy/products/${product!.id}` : "/api/admin/proxy/products", {
+      const res = await fetch(isExistingProduct ? `/api/admin/proxy/products/${productId}` : "/api/admin/proxy/products", {
         method: isExistingProduct ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const data = (await response.json().catch(() => null)) as { error?: string; item?: { id: string } } | null;
+      const data = (await res.json().catch(() => null)) as { error?: string; item?: { id: string } } | null;
 
-      if (!response.ok) {
+      if (!res.ok) {
         setError(data?.error ?? "Unable to save product.");
         return;
       }
 
-      setNotice(isExistingProduct ? "Core product details saved." : "Product created. You can now configure media and relationships.");
+      // Local state gets the new workflow pill immediately; the effect above
+      // will refresh it when the server snapshot returns.
+      setCore((c) => ({ ...c, workflowStatus: effectiveWorkflow }));
+      setNotice(isExistingProduct ? "Saved." : "Product created. Now configure media and relationships.");
 
       if (!isExistingProduct && data?.item?.id) {
         router.push(`/admin/products/${data.item.id}`);
@@ -183,88 +263,80 @@ export default function ProductEditor({ product, media, categories, collections,
     });
   };
 
-  const persistMedia = () => {
-    if (!product) {
-      return;
-    }
-
+  const persistMedia = (nextState: { primaryImageId: string; items: GalleryItem[] } = mediaState) => {
+    if (!productId) return;
     startTransition(async () => {
       setNotice(null);
       setError(null);
 
-      const response = await fetch(`/api/admin/proxy/products/${product.id}/media`, {
+      const res = await fetch(`/api/admin/proxy/products/${productId}/media`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          primaryImageId: mediaState.primaryImageId || null,
-          items: mediaState.items,
+          primaryImageId: nextState.primaryImageId || null,
+          items: nextState.items,
         }),
       });
 
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
         setError(data?.error ?? "Unable to save media.");
         return;
       }
 
-      setNotice("Media assignments saved.");
+      setNotice("Media saved.");
       router.refresh();
     });
   };
 
-  const persistAssignments = async (path: string, assignments: Array<{ id: string; sortOrder: number }>, key: "categoryId" | "collectionId" | "bridgePageId", successMessage: string) => {
-    if (!product) {
-      return;
-    }
-
-    const response = await fetch(`/api/admin/proxy/products/${product.id}/${path}`, {
+  const persistAssignments = async (
+    path: string,
+    assignments: Array<{ id: string; sortOrder: number }>,
+    key: "categoryId" | "collectionId" | "bridgePageId",
+    successMessage: string
+  ) => {
+    if (!productId) return;
+    const res = await fetch(`/api/admin/proxy/products/${productId}/${path}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assignments: assignments.map((entry) => ({
-          [key]: entry.id,
-          sortOrder: entry.sortOrder,
-        })),
+        assignments: assignments.map((e) => ({ [key]: e.id, sortOrder: e.sortOrder })),
       }),
     });
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error ?? `Unable to save ${path}.`);
     }
-
     setNotice(successMessage);
   };
 
-  const persistSimpleAssignments = (path: string, assignments: Array<{ id: string; sortOrder: number }>, key: "categoryId" | "collectionId" | "bridgePageId", message: string) => {
+  const persistSimpleAssignments = (
+    path: string,
+    assignments: Array<{ id: string; sortOrder: number }>,
+    key: "categoryId" | "collectionId" | "bridgePageId",
+    message: string
+  ) => {
     startTransition(async () => {
       setNotice(null);
       setError(null);
       try {
         await persistAssignments(path, assignments, key, message);
         router.refresh();
-      } catch (assignmentError) {
-        setError(assignmentError instanceof Error ? assignmentError.message : "Unable to save assignments.");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Unable to save assignments.");
       }
     });
   };
 
-  const updateOption = async (option: ProductOptionDraft) => {
-    if (!product) {
-      return;
-    }
+  // --- OPTIONS HANDLERS (unchanged from previous version) ---
 
-    const response = await fetch(`/api/admin/proxy/product-options/${option.id}`, {
+  const updateOption = async (option: ProductOptionDraft) => {
+    if (!productId) return;
+    const res = await fetch(`/api/admin/proxy/product-options/${option.id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        productId: product.id,
+        productId,
         code: option.code,
         label: option.label,
         selectionMode: option.selectionMode,
@@ -272,25 +344,19 @@ export default function ProductEditor({ product, media, categories, collections,
         sortOrder: option.sortOrder,
       }),
     });
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error ?? "Unable to save option.");
     }
   };
 
   const createOption = async () => {
-    if (!product) {
-      return;
-    }
-
-    const response = await fetch("/api/admin/proxy/product-options", {
+    if (!productId) return;
+    const res = await fetch("/api/admin/proxy/product-options", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        productId: product.id,
+        productId,
         code: `option-${options.length + 1}`,
         label: "New Option",
         selectionMode: "SINGLE",
@@ -298,30 +364,24 @@ export default function ProductEditor({ product, media, categories, collections,
         sortOrder: options.length,
       }),
     });
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error ?? "Unable to create option.");
     }
   };
 
   const deleteOption = async (optionId: string) => {
-    const response = await fetch(`/api/admin/proxy/product-options/${optionId}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const res = await fetch(`/api/admin/proxy/product-options/${optionId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error ?? "Unable to delete option.");
     }
   };
 
   const createValue = async (optionId: string, index: number) => {
-    const response = await fetch("/api/admin/proxy/product-option-values", {
+    const res = await fetch("/api/admin/proxy/product-option-values", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         productOptionId: optionId,
         value: `value-${index + 1}`,
@@ -331,19 +391,16 @@ export default function ProductEditor({ product, media, categories, collections,
         isActive: true,
       }),
     });
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error ?? "Unable to create option value.");
     }
   };
 
   const updateValue = async (value: ProductOptionDraft["values"][number], optionId: string) => {
-    const response = await fetch(`/api/admin/proxy/product-option-values/${value.id}`, {
+    const res = await fetch(`/api/admin/proxy/product-option-values/${value.id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         productOptionId: optionId,
         value: value.value,
@@ -353,423 +410,286 @@ export default function ProductEditor({ product, media, categories, collections,
         isActive: true,
       }),
     });
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error ?? "Unable to save option value.");
     }
   };
 
   const deleteValue = async (valueId: string) => {
-    const response = await fetch(`/api/admin/proxy/product-option-values/${valueId}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const res = await fetch(`/api/admin/proxy/product-option-values/${valueId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error ?? "Unable to delete option value.");
     }
   };
 
   const removeProduct = () => {
-    if (!product) {
-      return;
-    }
-
+    if (!productId) return;
+    if (!window.confirm("Permanently delete this product? This cannot be undone.")) return;
     startTransition(async () => {
-      const response = await fetch(`/api/admin/proxy/products/${product.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      const res = await fetch(`/api/admin/proxy/products/${productId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
         setError(data?.error ?? "Unable to delete product.");
         return;
       }
-
       router.push("/admin/products");
       router.refresh();
     });
   };
 
+  // --- GALLERY HELPERS ---
+
+  const attachMedia = (mediaAssetId: string) => {
+    const next = {
+      primaryImageId: mediaState.primaryImageId || mediaAssetId, // first attached becomes featured if none set
+      items: [
+        ...mediaState.items,
+        {
+          mediaAssetId,
+          sortOrder: mediaState.items.length,
+          mediaType: "GALLERY",
+        },
+      ],
+    };
+    setMediaState(next);
+    persistMedia(next);
+  };
+
+  const removeFromGallery = (mediaAssetId: string) => {
+    const next = {
+      primaryImageId: mediaState.primaryImageId === mediaAssetId ? "" : mediaState.primaryImageId,
+      items: mediaState.items
+        .filter((i) => i.mediaAssetId !== mediaAssetId)
+        .map((i, idx) => ({ ...i, sortOrder: idx })),
+    };
+    setMediaState(next);
+    persistMedia(next);
+  };
+
+  const setPrimary = (mediaAssetId: string) => {
+    const next = { ...mediaState, primaryImageId: mediaAssetId };
+    setMediaState(next);
+    persistMedia(next);
+  };
+
+  const reorderGallery = (items: GalleryItem[]) => {
+    const next = { ...mediaState, items };
+    setMediaState(next);
+    persistMedia(next);
+  };
+
+  const changeMediaType = (mediaAssetId: string, mediaType: string) => {
+    const next = {
+      ...mediaState,
+      items: mediaState.items.map((i) => (i.mediaAssetId === mediaAssetId ? { ...i, mediaType } : i)),
+    };
+    setMediaState(next);
+    persistMedia(next);
+  };
+
+  // --- RENDER ---
+
+  const primaryAsset = mediaState.primaryImageId ? assetIndex.get(mediaState.primaryImageId) : undefined;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.18em] transition ${
-              activeTab === tab ? "bg-[#2e4a36] text-[#f4efe8]" : "border border-[#cdbfae] bg-[#f8f2e8] text-[#3a3129]"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {notice ? (
+        <p className="rounded-2xl border border-[#cde0d2] bg-[#eef8f0] px-4 py-3 text-[14px] text-[#2c6541]">{notice}</p>
+      ) : null}
+      {error ? (
+        <p className="rounded-2xl border border-[#e7c1ba] bg-[#fff1ee] px-4 py-3 text-[14px] text-[#9f4332]">{error}</p>
+      ) : null}
 
-      {notice ? <p className="rounded-2xl border border-[#cde0d2] bg-[#eef8f0] px-4 py-3 text-[14px] text-[#2c6541]">{notice}</p> : null}
-      {error ? <p className="rounded-2xl border border-[#e7c1ba] bg-[#fff1ee] px-4 py-3 text-[14px] text-[#9f4332]">{error}</p> : null}
-
-      {activeTab === "Core" ? (
-        <AdminCard>
-          <div className="flex flex-col gap-4 border-b border-[#e2d7c7] pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-[24px]">Core Product Details</h2>
-              {product ? (
-                <div className="mt-3 flex items-center gap-3">
-                  <AdminStatusBadge value={product.status} />
-                  <span className="text-[12px] uppercase tracking-[0.18em] text-[#807568]">{product.slug}</span>
-                </div>
-              ) : null}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        {/* ─── MAIN COLUMN ─────────────────────────────────────────────── */}
+        <div className="space-y-6">
+          {/* Title + descriptions */}
+          <AdminCard>
+            <h2 className="text-[18px] font-medium text-[#1d1916]">Product</h2>
+            <div className="mt-4 grid gap-4">
+              <AdminField label="Title">
+                <input
+                  value={core.title}
+                  onChange={(e) => setCore((c) => ({ ...c, title: e.target.value }))}
+                  className={`${adminInputClassName} text-[18px] font-medium`}
+                  placeholder="Product title"
+                />
+              </AdminField>
+              <AdminField label="Slug" hint="URL-safe identifier. Used in /shop/<slug>.">
+                <input
+                  value={core.slug}
+                  onChange={(e) => setCore((c) => ({ ...c, slug: e.target.value }))}
+                  className={adminInputClassName}
+                  placeholder="product-slug"
+                />
+              </AdminField>
+              <AdminField label="Short description">
+                <textarea
+                  rows={3}
+                  value={core.shortDescription}
+                  onChange={(e) => setCore((c) => ({ ...c, shortDescription: e.target.value }))}
+                  className={adminTextareaClassName}
+                />
+              </AdminField>
+              <AdminField label="Long description">
+                <textarea
+                  rows={8}
+                  value={core.longDescription}
+                  onChange={(e) => setCore((c) => ({ ...c, longDescription: e.target.value }))}
+                  className={adminTextareaClassName}
+                />
+              </AdminField>
             </div>
-            <div className="flex gap-3">
-              <button type="button" disabled={isPending} onClick={persistCore} className={adminButtonClassName}>
-                {product ? "Save core" : "Create product"}
+          </AdminCard>
+
+          {/* Taxonomy-ish fields */}
+          <AdminCard>
+            <h2 className="text-[18px] font-medium text-[#1d1916]">Classification</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <AdminField label="Type">
+                <input
+                  value={core.type}
+                  onChange={(e) => setCore((c) => ({ ...c, type: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+              <AdminField label="Material">
+                <input
+                  value={core.material}
+                  onChange={(e) => setCore((c) => ({ ...c, material: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+              <AdminField label="Use case">
+                <input
+                  value={core.useCase}
+                  onChange={(e) => setCore((c) => ({ ...c, useCase: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+              <AdminField label="Release date">
+                <input
+                  type="datetime-local"
+                  value={core.releaseDate}
+                  onChange={(e) => setCore((c) => ({ ...c, releaseDate: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+            </div>
+          </AdminCard>
+
+          {/* Product gallery */}
+          <AdminCard>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-[18px] font-medium text-[#1d1916]">Product gallery</h2>
+                <p className="mt-1 text-[12px] text-[#8a8075]">
+                  Drag tiles to reorder. The featured image is used on the shop card.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddMediaOpen(true)}
+                disabled={!isExistingProduct}
+                className={adminSecondaryButtonClassName}
+                title={isExistingProduct ? "" : "Save the product first to attach media."}
+              >
+                Add media
               </button>
-              {product && canDelete ? (
-                <button type="button" disabled={isPending} onClick={removeProduct} className={adminDangerButtonClassName}>
-                  Delete
-                </button>
-              ) : null}
             </div>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <AdminField label="Slug">
-              <input value={core.slug} onChange={(event) => setCore((current) => ({ ...current, slug: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Title">
-              <input value={core.title} onChange={(event) => setCore((current) => ({ ...current, title: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Type">
-              <input value={core.type} onChange={(event) => setCore((current) => ({ ...current, type: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Material">
-              <input value={core.material} onChange={(event) => setCore((current) => ({ ...current, material: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Use case">
-              <input value={core.useCase} onChange={(event) => setCore((current) => ({ ...current, useCase: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Currency">
-              <input value={core.currency} onChange={(event) => setCore((current) => ({ ...current, currency: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Price amount">
-              <input
-                type="number"
-                value={core.priceAmount}
-                onChange={(event) => setCore((current) => ({ ...current, priceAmount: Number(event.target.value) }))}
-                className={adminInputClassName}
-              />
-            </AdminField>
-            <AdminField label="Status">
-              <select value={core.status} onChange={(event) => setCore((current) => ({ ...current, status: event.target.value }))} className={adminInputClassName}>
-                {["IN_STOCK", "LIMITED_EDITION", "UPCOMING", "OPEN_FOR_BOOKING", "SOLD_OUT", "WAITLIST", "BOOKING_OPEN"].map((status) => (
-                  <option key={status} value={status}>
-                    {status.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </select>
-            </AdminField>
-            <AdminField label="Release date">
-              <input type="datetime-local" value={core.releaseDate} onChange={(event) => setCore((current) => ({ ...current, releaseDate: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Published at">
-              <input type="datetime-local" value={core.publishedAt} onChange={(event) => setCore((current) => ({ ...current, publishedAt: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="CTA label">
-              <input value={core.ctaLabel} onChange={(event) => setCore((current) => ({ ...current, ctaLabel: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="Image alt">
-              <input value={core.imageAlt} onChange={(event) => setCore((current) => ({ ...current, imageAlt: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="SEO title">
-              <input value={core.seoTitle} onChange={(event) => setCore((current) => ({ ...current, seoTitle: event.target.value }))} className={adminInputClassName} />
-            </AdminField>
-            <AdminField label="SEO description">
-              <textarea rows={3} value={core.seoDescription} onChange={(event) => setCore((current) => ({ ...current, seoDescription: event.target.value }))} className={adminTextareaClassName} />
-            </AdminField>
-          </div>
-
-          <div className="mt-5 grid gap-5">
-            <AdminField label="Short description">
-              <textarea rows={4} value={core.shortDescription} onChange={(event) => setCore((current) => ({ ...current, shortDescription: event.target.value }))} className={adminTextareaClassName} />
-            </AdminField>
-            <AdminField label="Long description">
-              <textarea rows={8} value={core.longDescription} onChange={(event) => setCore((current) => ({ ...current, longDescription: event.target.value }))} className={adminTextareaClassName} />
-            </AdminField>
-          </div>
-        </AdminCard>
-      ) : null}
-
-      {activeTab === "Advanced" ? (
-        <AdminCard>
-          <div className="flex flex-col gap-4 border-b border-[#e2d7c7] pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-[24px]">Advanced Metadata</h2>
-              <p className="mt-2 text-[13px] leading-[1.8] text-[#7b7064]">Use JSON to preserve catalog fields that are not yet modeled in the structured editor.</p>
-            </div>
-            <button type="button" disabled={isPending} onClick={persistCore} className={adminButtonClassName}>
-              Save metadata
-            </button>
-          </div>
-
-          <div className="mt-6">
-            <AdminField label="Metadata JSON">
-              <textarea rows={14} value={advanced.metadata} onChange={(event) => setAdvanced({ metadata: event.target.value })} className={adminTextareaClassName} />
-            </AdminField>
-          </div>
-        </AdminCard>
-      ) : null}
-
-      {activeTab !== "Core" && activeTab !== "Advanced" && !isExistingProduct ? (
-        <AdminCard>
-          <p className="text-[15px] leading-[1.8] text-[#62574c]">Create the product first, then return to configure media, options, and relationships.</p>
-        </AdminCard>
-      ) : null}
-
-      {activeTab === "Media" && product ? (
-        <AdminCard>
-          <div className="flex flex-col gap-4 border-b border-[#e2d7c7] pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-[24px]">Media Assignments</h2>
-              <p className="mt-2 text-[13px] leading-[1.8] text-[#7b7064]">Choose the primary asset and define the ordered gallery for the product.</p>
-            </div>
-            <button type="button" disabled={isPending} onClick={persistMedia} className={adminButtonClassName}>
-              Save media
-            </button>
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            {media.map((asset) => {
-              const selectedItem = mediaState.items.find((item) => item.mediaAssetId === asset.id);
-
-              return (
-                <div key={asset.id} className="rounded-2xl border border-[#e2d7c7] bg-white p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[14px] font-medium text-[#1f1a16]">{asset.altText || asset.url}</p>
-                      <p className="mt-1 text-[12px] leading-[1.7] text-[#7b7064]">{asset.kind}</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={selectedMediaIds.has(asset.id)}
-                      onChange={(event) => {
-                        if (event.target.checked) {
-                          setMediaState((current) => ({
-                            ...current,
-                            items: [...current.items, { mediaAssetId: asset.id, sortOrder: current.items.length, mediaType: "GALLERY" }],
-                          }));
-                        } else {
-                          setMediaState((current) => ({
-                            ...current,
-                            primaryImageId: current.primaryImageId === asset.id ? "" : current.primaryImageId,
-                            items: current.items.filter((item) => item.mediaAssetId !== asset.id),
-                          }));
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {selectedItem ? (
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <AdminField label="Primary image">
-                        <input
-                          type="radio"
-                          checked={mediaState.primaryImageId === asset.id}
-                          onChange={() => setMediaState((current) => ({ ...current, primaryImageId: asset.id }))}
-                        />
-                      </AdminField>
-                      <AdminField label="Sort order">
-                        <input
-                          type="number"
-                          value={selectedItem.sortOrder}
-                          onChange={(event) =>
-                            setMediaState((current) => ({
-                              ...current,
-                              items: current.items.map((item) =>
-                                item.mediaAssetId === asset.id ? { ...item, sortOrder: Number(event.target.value) } : item
-                              ),
-                            }))
-                          }
-                          className={adminInputClassName}
-                        />
-                      </AdminField>
-                      <AdminField label="Media type">
-                        <select
-                          value={selectedItem.mediaType}
-                          onChange={(event) =>
-                            setMediaState((current) => ({
-                              ...current,
-                              items: current.items.map((item) =>
-                                item.mediaAssetId === asset.id ? { ...item, mediaType: event.target.value } : item
-                              ),
-                            }))
-                          }
-                          className={adminInputClassName}
-                        >
-                          {["PRIMARY", "GALLERY", "DETAIL", "VIDEO_POSTER"].map((type) => (
-                            <option key={type} value={type}>
-                              {type.replaceAll("_", " ")}
-                            </option>
-                          ))}
-                        </select>
-                      </AdminField>
-                    </div>
-                  ) : null}
+            <div className="mt-4">
+              {isExistingProduct ? (
+                <MediaGallery
+                  items={mediaState.items}
+                  assets={assetIndex}
+                  primaryImageId={mediaState.primaryImageId}
+                  onReorder={reorderGallery}
+                  onRemove={removeFromGallery}
+                  onSetPrimary={setPrimary}
+                  onChangeType={changeMediaType}
+                />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[#d7cec1] bg-[#fbf8f3] px-4 py-6 text-center text-[13px] text-[#8a8075]">
+                  Save the product first, then you can attach media.
                 </div>
-              );
-            })}
-          </div>
-        </AdminCard>
-      ) : null}
-
-      {activeTab === "Options" && product ? (
-        <AdminCard>
-          <div className="flex flex-col gap-4 border-b border-[#e2d7c7] pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-[24px]">Options & Variant Values</h2>
-              <p className="mt-2 text-[13px] leading-[1.8] text-[#7b7064]">Configure selectors used by diffusers, textiles, and lifestyle bundle flows.</p>
+              )}
             </div>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => {
-                startTransition(async () => {
-                  setNotice(null);
-                  setError(null);
-                  try {
-                    await createOption();
-                    setNotice("Option created.");
-                    router.refresh();
-                  } catch (optionError) {
-                    setError(optionError instanceof Error ? optionError.message : "Unable to create option.");
-                  }
-                });
-              }}
-              className={adminSecondaryButtonClassName}
-            >
-              Add option
-            </button>
-          </div>
+          </AdminCard>
 
-          <div className="mt-6 space-y-5">
-            {options.length === 0 ? (
-              <p className="text-[14px] leading-[1.8] text-[#62574c]">No options configured yet.</p>
-            ) : (
-              options.map((option, optionIndex) => (
-                <div key={option.id} className="rounded-[26px] border border-[#e2d7c7] bg-white p-5">
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <AdminField label="Code">
-                      <input
-                        value={option.code}
-                        onChange={(event) =>
-                          setOptions((current) =>
-                            current.map((entry, index) => (index === optionIndex ? { ...entry, code: event.target.value } : entry))
-                          )
-                        }
-                        className={adminInputClassName}
-                      />
-                    </AdminField>
-                    <AdminField label="Label">
-                      <input
-                        value={option.label}
-                        onChange={(event) =>
-                          setOptions((current) =>
-                            current.map((entry, index) => (index === optionIndex ? { ...entry, label: event.target.value } : entry))
-                          )
-                        }
-                        className={adminInputClassName}
-                      />
-                    </AdminField>
-                    <AdminField label="Selection mode">
-                      <select
-                        value={option.selectionMode}
-                        onChange={(event) =>
-                          setOptions((current) =>
-                            current.map((entry, index) =>
-                              index === optionIndex ? { ...entry, selectionMode: event.target.value as "SINGLE" | "MULTI" } : entry
-                            )
-                          )
-                        }
-                        className={adminInputClassName}
-                      >
-                        <option value="SINGLE">Single</option>
-                        <option value="MULTI">Multi</option>
-                      </select>
-                    </AdminField>
-                    <AdminField label="Sort order">
-                      <input
-                        type="number"
-                        value={option.sortOrder}
-                        onChange={(event) =>
-                          setOptions((current) =>
-                            current.map((entry, index) => (index === optionIndex ? { ...entry, sortOrder: Number(event.target.value) } : entry))
-                          )
-                        }
-                        className={adminInputClassName}
-                      />
-                    </AdminField>
-                  </div>
-
-                  <label className="mt-4 flex items-center gap-3 text-[13px] text-[#62574c]">
-                    <input
-                      type="checkbox"
-                      checked={option.required}
-                      onChange={(event) =>
-                        setOptions((current) =>
-                          current.map((entry, index) => (index === optionIndex ? { ...entry, required: event.target.checked } : entry))
-                        )
-                      }
-                    />
-                    Required selection
-                  </label>
-
-                  <div className="mt-4 flex flex-wrap gap-3">
+          {/* Options — collapsible */}
+          {isExistingProduct ? (
+            <AdminCard>
+              <details open={options.length > 0}>
+                <summary className="cursor-pointer list-none">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-[18px] font-medium text-[#1d1916]">
+                      Options &amp; variants
+                      <span className="ml-2 text-[12px] font-normal text-[#8a8075]">({options.length})</span>
+                    </h2>
                     <button
                       type="button"
-                      className={adminButtonClassName}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
                         startTransition(async () => {
                           setNotice(null);
                           setError(null);
                           try {
-                            await updateOption(option);
-                            setNotice("Option saved.");
+                            await createOption();
+                            setNotice("Option created.");
                             router.refresh();
-                          } catch (optionError) {
-                            setError(optionError instanceof Error ? optionError.message : "Unable to save option.");
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : "Unable to create option.");
                           }
                         });
                       }}
-                    >
-                      Save option
-                    </button>
-                    <button
-                      type="button"
                       className={adminSecondaryButtonClassName}
-                      onClick={() => {
-                        startTransition(async () => {
-                          setNotice(null);
-                          setError(null);
-                          try {
-                            await createValue(option.id, option.values.length);
-                            setNotice("Option value created.");
-                            router.refresh();
-                          } catch (valueError) {
-                            setError(valueError instanceof Error ? valueError.message : "Unable to create option value.");
-                          }
-                        });
-                      }}
                     >
-                      Add value
+                      Add option
                     </button>
-                    {canDelete ? (
-                      <button
-                        type="button"
-                        className={adminDangerButtonClassName}
-                        onClick={() => {
+                  </div>
+                </summary>
+
+                <div className="mt-4 space-y-4">
+                  {options.length === 0 ? (
+                    <p className="text-[13px] text-[#8a8075]">No options configured.</p>
+                  ) : (
+                    options.map((option, optionIndex) => (
+                      <OptionEditor
+                        key={option.id}
+                        option={option}
+                        optionIndex={optionIndex}
+                        setOptions={setOptions}
+                        canDelete={canDelete}
+                        isPending={isPending}
+                        onSaveOption={() =>
+                          startTransition(async () => {
+                            setNotice(null);
+                            setError(null);
+                            try {
+                              await updateOption(option);
+                              setNotice("Option saved.");
+                              router.refresh();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Unable to save option.");
+                            }
+                          })
+                        }
+                        onAddValue={() =>
+                          startTransition(async () => {
+                            setNotice(null);
+                            setError(null);
+                            try {
+                              await createValue(option.id, option.values.length);
+                              setNotice("Value created.");
+                              router.refresh();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Unable to create value.");
+                            }
+                          })
+                        }
+                        onDeleteOption={() =>
                           startTransition(async () => {
                             setNotice(null);
                             setError(null);
@@ -777,340 +697,528 @@ export default function ProductEditor({ product, media, categories, collections,
                               await deleteOption(option.id);
                               setNotice("Option deleted.");
                               router.refresh();
-                            } catch (optionError) {
-                              setError(optionError instanceof Error ? optionError.message : "Unable to delete option.");
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Unable to delete option.");
                             }
-                          });
-                        }}
-                      >
-                        Delete option
-                      </button>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-5 space-y-4">
-                    {option.values.map((value, valueIndex) => (
-                      <div key={value.id} className="rounded-2xl border border-[#ebe2d7] bg-[#fbf8f3] p-4">
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                          <AdminField label="Value">
-                            <input
-                              value={value.value}
-                              onChange={(event) =>
-                                setOptions((current) =>
-                                  current.map((entry, index) =>
-                                    index === optionIndex
-                                      ? {
-                                          ...entry,
-                                          values: entry.values.map((item, itemIndex) =>
-                                            itemIndex === valueIndex ? { ...item, value: event.target.value } : item
-                                          ),
-                                        }
-                                      : entry
-                                  )
-                                )
-                              }
-                              className={adminInputClassName}
-                            />
-                          </AdminField>
-                          <AdminField label="Label">
-                            <input
-                              value={value.label}
-                              onChange={(event) =>
-                                setOptions((current) =>
-                                  current.map((entry, index) =>
-                                    index === optionIndex
-                                      ? {
-                                          ...entry,
-                                          values: entry.values.map((item, itemIndex) =>
-                                            itemIndex === valueIndex ? { ...item, label: event.target.value } : item
-                                          ),
-                                        }
-                                      : entry
-                                  )
-                                )
-                              }
-                              className={adminInputClassName}
-                            />
-                          </AdminField>
-                          <AdminField label="Price delta">
-                            <input
-                              type="number"
-                              value={value.priceDeltaAmount}
-                              onChange={(event) =>
-                                setOptions((current) =>
-                                  current.map((entry, index) =>
-                                    index === optionIndex
-                                      ? {
-                                          ...entry,
-                                          values: entry.values.map((item, itemIndex) =>
-                                            itemIndex === valueIndex ? { ...item, priceDeltaAmount: Number(event.target.value) } : item
-                                          ),
-                                        }
-                                      : entry
-                                  )
-                                )
-                              }
-                              className={adminInputClassName}
-                            />
-                          </AdminField>
-                          <AdminField label="Sort order">
-                            <input
-                              type="number"
-                              value={value.sortOrder}
-                              onChange={(event) =>
-                                setOptions((current) =>
-                                  current.map((entry, index) =>
-                                    index === optionIndex
-                                      ? {
-                                          ...entry,
-                                          values: entry.values.map((item, itemIndex) =>
-                                            itemIndex === valueIndex ? { ...item, sortOrder: Number(event.target.value) } : item
-                                          ),
-                                        }
-                                      : entry
-                                  )
-                                )
-                              }
-                              className={adminInputClassName}
-                            />
-                          </AdminField>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-3">
-                          <button
-                            type="button"
-                            className={adminButtonClassName}
-                            onClick={() => {
-                              startTransition(async () => {
-                                setNotice(null);
-                                setError(null);
-                                try {
-                                  await updateValue(value, option.id);
-                                  setNotice("Option value saved.");
-                                  router.refresh();
-                                } catch (valueError) {
-                                  setError(valueError instanceof Error ? valueError.message : "Unable to save option value.");
-                                }
-                              });
-                            }}
-                          >
-                            Save value
-                          </button>
-                          {canDelete ? (
-                            <button
-                              type="button"
-                              className={adminDangerButtonClassName}
-                              onClick={() => {
-                                startTransition(async () => {
-                                  setNotice(null);
-                                  setError(null);
-                                  try {
-                                    await deleteValue(value.id);
-                                    setNotice("Option value deleted.");
-                                    router.refresh();
-                                  } catch (valueError) {
-                                    setError(valueError instanceof Error ? valueError.message : "Unable to delete option value.");
-                                  }
-                                });
-                              }}
-                            >
-                              Delete value
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                          })
+                        }
+                        onSaveValue={(value) =>
+                          startTransition(async () => {
+                            setNotice(null);
+                            setError(null);
+                            try {
+                              await updateValue(value, option.id);
+                              setNotice("Value saved.");
+                              router.refresh();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Unable to save value.");
+                            }
+                          })
+                        }
+                        onDeleteValue={(valueId) =>
+                          startTransition(async () => {
+                            setNotice(null);
+                            setError(null);
+                            try {
+                              await deleteValue(valueId);
+                              setNotice("Value deleted.");
+                              router.refresh();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Unable to delete value.");
+                            }
+                          })
+                        }
+                      />
+                    ))
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-        </AdminCard>
-      ) : null}
+              </details>
+            </AdminCard>
+          ) : null}
 
-      {activeTab === "Categories" && product ? (
-        <AdminCard>
-          <div className="flex flex-col gap-4 border-b border-[#e2d7c7] pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-[24px]">Category Memberships</h2>
+          {/* SEO — collapsible */}
+          <AdminCard>
+            <details>
+              <summary className="cursor-pointer list-none">
+                <h2 className="text-[18px] font-medium text-[#1d1916]">SEO &amp; call-to-action</h2>
+              </summary>
+              <div className="mt-4 grid gap-4">
+                <AdminField label="SEO title">
+                  <input
+                    value={core.seoTitle}
+                    onChange={(e) => setCore((c) => ({ ...c, seoTitle: e.target.value }))}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+                <AdminField label="SEO description">
+                  <textarea
+                    rows={3}
+                    value={core.seoDescription}
+                    onChange={(e) => setCore((c) => ({ ...c, seoDescription: e.target.value }))}
+                    className={adminTextareaClassName}
+                  />
+                </AdminField>
+                <AdminField label="Featured image alt">
+                  <input
+                    value={core.imageAlt}
+                    onChange={(e) => setCore((c) => ({ ...c, imageAlt: e.target.value }))}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+                <AdminField label="CTA label">
+                  <input
+                    value={core.ctaLabel}
+                    onChange={(e) => setCore((c) => ({ ...c, ctaLabel: e.target.value }))}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+              </div>
+            </details>
+          </AdminCard>
+
+          {/* Advanced — collapsible */}
+          <AdminCard>
+            <details>
+              <summary className="cursor-pointer list-none">
+                <h2 className="text-[18px] font-medium text-[#1d1916]">Advanced metadata (JSON)</h2>
+              </summary>
+              <p className="mt-2 text-[12px] text-[#8a8075]">
+                For catalog fields not yet modeled in the structured editor. Must be valid JSON.
+              </p>
+              <div className="mt-4">
+                <textarea
+                  rows={10}
+                  value={advanced.metadata}
+                  onChange={(e) => setAdvanced({ metadata: e.target.value })}
+                  className={adminTextareaClassName}
+                  placeholder="{}"
+                />
+              </div>
+            </details>
+          </AdminCard>
+        </div>
+
+        {/* ─── SIDEBAR ─────────────────────────────────────────────────── */}
+        <aside className="space-y-6">
+          {/* Publish panel */}
+          <AdminCard>
+            <h2 className="text-[14px] font-medium uppercase tracking-[0.16em] text-[#6a5d50]">Publish</h2>
+            <div className="mt-3 flex items-center gap-2 text-[13px]">
+              <span className="text-[#62574c]">Status</span>
+              <AdminStatusBadge value={core.workflowStatus} />
             </div>
-            <button
-              type="button"
-              className={adminButtonClassName}
-              onClick={() => persistSimpleAssignments("categories", categoryAssignments, "categoryId", "Category memberships saved.")}
-            >
-              Save categories
-            </button>
-          </div>
+            {product?.publishedAt ? (
+              <p className="mt-2 text-[11px] text-[#8a8075]">
+                First published {new Date(product.publishedAt).toLocaleString()}
+              </p>
+            ) : null}
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            {categories.map((category) => {
-              const selected = categoryAssignments.find((entry) => entry.id === category.id);
+            <div className="mt-4 flex flex-col gap-2">
+              {isExistingProduct ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => persistCore({ workflowStatus: "PUBLISHED" })}
+                    className={adminButtonClassName}
+                  >
+                    {core.workflowStatus === "PUBLISHED" ? "Update" : "Publish"}
+                  </button>
+                  {core.workflowStatus === "PUBLISHED" ? (
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => persistCore({ workflowStatus: "DRAFT" })}
+                      className={adminSecondaryButtonClassName}
+                    >
+                      Move to draft
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => persistCore({ workflowStatus: "DRAFT" })}
+                      className={adminSecondaryButtonClassName}
+                    >
+                      Save draft
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => persistCore({ workflowStatus: "DRAFT" })}
+                  className={adminButtonClassName}
+                >
+                  Create as draft
+                </button>
+              )}
 
-              return (
-                <div key={category.id} className="rounded-2xl border border-[#e2d7c7] bg-white p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[15px] font-medium text-[#201b18]">{category.name}</p>
-                      <p className="mt-1 text-[12px] uppercase tracking-[0.16em] text-[#7d7267]">{category.kind.replaceAll("_", " ")}</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={selectedCategoryIds.has(category.id)}
-                      onChange={(event) =>
-                        setCategoryAssignments((current) =>
-                          event.target.checked ? [...current, { id: category.id, sortOrder: current.length }] : current.filter((entry) => entry.id !== category.id)
-                        )
-                      }
+              {isExistingProduct && canDelete ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={removeProduct}
+                  className={adminDangerButtonClassName}
+                >
+                  Delete product
+                </button>
+              ) : null}
+            </div>
+
+            {isExistingProduct && core.workflowStatus === "PUBLISHED" ? (
+              <a
+                href={`/shop/${core.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 block text-center text-[12px] text-[#2e4a36] hover:underline"
+              >
+                View on storefront →
+              </a>
+            ) : null}
+          </AdminCard>
+
+          {/* Stock / price panel */}
+          <AdminCard>
+            <h2 className="text-[14px] font-medium uppercase tracking-[0.16em] text-[#6a5d50]">Stock &amp; price</h2>
+            <div className="mt-4 space-y-4">
+              <AdminField label="Stock status">
+                <select
+                  value={core.status}
+                  onChange={(e) => setCore((c) => ({ ...c, status: e.target.value }))}
+                  className={adminInputClassName}
+                >
+                  {stockStatusOptions.map((s) => (
+                    <option key={s} value={s}>
+                      {s.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </AdminField>
+              <div className="grid grid-cols-[1fr_90px] gap-3">
+                <AdminField label="Price">
+                  <input
+                    type="number"
+                    value={core.priceAmount}
+                    onChange={(e) => setCore((c) => ({ ...c, priceAmount: Number(e.target.value) }))}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+                <AdminField label="Currency">
+                  <input
+                    value={core.currency}
+                    onChange={(e) => setCore((c) => ({ ...c, currency: e.target.value }))}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+              </div>
+            </div>
+          </AdminCard>
+
+          {/* Featured image */}
+          {isExistingProduct ? (
+            <AdminCard>
+              <h2 className="text-[14px] font-medium uppercase tracking-[0.16em] text-[#6a5d50]">Featured image</h2>
+              <div className="mt-4">
+                {primaryAsset ? (
+                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#efe6d4]">
+                    <Image
+                      src={primaryAsset.url}
+                      alt={primaryAsset.altText ?? core.imageAlt}
+                      fill
+                      sizes="300px"
+                      className="object-cover"
+                      unoptimized
                     />
                   </div>
-                  {selected ? (
-                    <div className="mt-4">
-                      <AdminField label="Sort order">
-                        <input
-                          type="number"
-                          value={selected.sortOrder}
-                          onChange={(event) =>
-                            setCategoryAssignments((current) =>
-                              current.map((entry) => (entry.id === category.id ? { ...entry, sortOrder: Number(event.target.value) } : entry))
-                            )
-                          }
-                          className={adminInputClassName}
-                        />
-                      </AdminField>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </AdminCard>
-      ) : null}
-
-      {activeTab === "Collections" && product ? (
-        <AdminCard>
-          <div className="flex flex-col gap-4 border-b border-[#e2d7c7] pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-[24px]">Collection Memberships</h2>
-            </div>
-            <button
-              type="button"
-              className={adminButtonClassName}
-              onClick={() => persistSimpleAssignments("collections", collectionAssignments, "collectionId", "Collection memberships saved.")}
-            >
-              Save collections
-            </button>
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            {collections.map((collection) => {
-              const selected = collectionAssignments.find((entry) => entry.id === collection.id);
-
-              return (
-                <div key={collection.id} className="rounded-2xl border border-[#e2d7c7] bg-white p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[15px] font-medium text-[#201b18]">{collection.name}</p>
-                      <p className="mt-1 text-[12px] uppercase tracking-[0.16em] text-[#7d7267]">{collection.kind.replaceAll("_", " ")}</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={selectedCollectionIds.has(collection.id)}
-                      onChange={(event) =>
-                        setCollectionAssignments((current) =>
-                          event.target.checked ? [...current, { id: collection.id, sortOrder: current.length }] : current.filter((entry) => entry.id !== collection.id)
-                        )
-                      }
-                    />
+                ) : (
+                  <div className="flex aspect-square w-full items-center justify-center rounded-xl border border-dashed border-[#d7cec1] bg-[#fbf8f3] text-[12px] text-[#8a8075]">
+                    No featured image
                   </div>
-                  {selected ? (
-                    <div className="mt-4">
-                      <AdminField label="Sort order">
-                        <input
-                          type="number"
-                          value={selected.sortOrder}
-                          onChange={(event) =>
-                            setCollectionAssignments((current) =>
-                              current.map((entry) => (entry.id === collection.id ? { ...entry, sortOrder: Number(event.target.value) } : entry))
-                            )
-                          }
-                          className={adminInputClassName}
-                        />
-                      </AdminField>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </AdminCard>
-      ) : null}
+                )}
+              </div>
+              <p className="mt-2 text-[11px] text-[#8a8075]">
+                Set via &quot;Set featured&quot; on any gallery tile.
+              </p>
+            </AdminCard>
+          ) : null}
 
-      {activeTab === "Bridge Pages" && product ? (
-        <AdminCard>
-          <div className="flex flex-col gap-4 border-b border-[#e2d7c7] pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-[24px]">Bridge Page Placement</h2>
-              <p className="mt-2 text-[13px] leading-[1.8] text-[#7b7064]">Attach the product to one or more bridge pages and set its order within each page.</p>
-            </div>
-            <button
-              type="button"
-              className={adminButtonClassName}
-              onClick={() => persistSimpleAssignments("bridge-pages", bridgeAssignments, "bridgePageId", "Bridge page assignments saved.")}
-            >
-              Save bridge pages
-            </button>
-          </div>
+          {/* Assignments: categories / collections / bridge pages */}
+          {isExistingProduct ? (
+            <>
+              <AssignmentPanel
+                title="Categories"
+                items={categories.map((c) => ({ id: c.id, label: c.name, sublabel: c.kind.replaceAll("_", " ") }))}
+                setAssignments={setCategoryAssignments}
+                selectedIds={selectedCategoryIds}
+                onSave={() => persistSimpleAssignments("categories", categoryAssignments, "categoryId", "Categories saved.")}
+                isPending={isPending}
+              />
+              <AssignmentPanel
+                title="Collections"
+                items={collections.map((c) => ({ id: c.id, label: c.name, sublabel: c.kind.replaceAll("_", " ") }))}
+                setAssignments={setCollectionAssignments}
+                selectedIds={selectedCollectionIds}
+                onSave={() => persistSimpleAssignments("collections", collectionAssignments, "collectionId", "Collections saved.")}
+                isPending={isPending}
+              />
+              <AssignmentPanel
+                title="Bridge pages"
+                items={bridgePages.map((p) => ({ id: p.id, label: p.navLabel, sublabel: p.slug }))}
+                setAssignments={setBridgeAssignments}
+                selectedIds={selectedBridgePageIds}
+                onSave={() => persistSimpleAssignments("bridge-pages", bridgeAssignments, "bridgePageId", "Bridge pages saved.")}
+                isPending={isPending}
+              />
+            </>
+          ) : null}
+        </aside>
+      </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            {bridgePages.map((page) => {
-              const selected = bridgeAssignments.find((entry) => entry.id === page.id);
-
-              return (
-                <div key={page.id} className="rounded-2xl border border-[#e2d7c7] bg-white p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[15px] font-medium text-[#201b18]">{page.navLabel}</p>
-                      <p className="mt-1 text-[12px] uppercase tracking-[0.16em] text-[#7d7267]">{page.slug}</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={selectedBridgePageIds.has(page.id)}
-                      onChange={(event) =>
-                        setBridgeAssignments((current) =>
-                          event.target.checked ? [...current, { id: page.id, sortOrder: current.length }] : current.filter((entry) => entry.id !== page.id)
-                        )
-                      }
-                    />
-                  </div>
-                  {selected ? (
-                    <div className="mt-4">
-                      <AdminField label="Sort order">
-                        <input
-                          type="number"
-                          value={selected.sortOrder}
-                          onChange={(event) =>
-                            setBridgeAssignments((current) =>
-                              current.map((entry) => (entry.id === page.id ? { ...entry, sortOrder: Number(event.target.value) } : entry))
-                            )
-                          }
-                          className={adminInputClassName}
-                        />
-                      </AdminField>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </AdminCard>
-      ) : null}
-
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <Link href="/admin/products" className={adminSecondaryButtonClassName}>
-          Back to products
+          ← Back to products
         </Link>
       </div>
+
+      <AddMediaDialog
+        open={addMediaOpen}
+        onClose={() => setAddMediaOpen(false)}
+        library={media}
+        alreadySelectedIds={selectedMediaIds}
+        onSelect={attachMedia}
+      />
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sub-components (kept in this file to limit PR surface area)
+// ────────────────────────────────────────────────────────────────────────────
+
+function AssignmentPanel({
+  title,
+  items,
+  setAssignments,
+  selectedIds,
+  onSave,
+  isPending,
+}: {
+  title: string;
+  items: Array<{ id: string; label: string; sublabel: string }>;
+  setAssignments: (updater: (current: Array<{ id: string; sortOrder: number }>) => Array<{ id: string; sortOrder: number }>) => void;
+  selectedIds: Set<string>;
+  onSave: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <AdminCard>
+      <details open={selectedIds.size > 0}>
+        <summary className="cursor-pointer list-none">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[14px] font-medium uppercase tracking-[0.16em] text-[#6a5d50]">
+              {title}
+              <span className="ml-2 text-[11px] normal-case tracking-normal text-[#8a8075]">({selectedIds.size})</span>
+            </h2>
+          </div>
+        </summary>
+        <div className="mt-4 space-y-2">
+          {items.map((item) => {
+            const checked = selectedIds.has(item.id);
+            return (
+              <label key={item.id} className="flex items-start gap-2 rounded-lg border border-[#ece2d2] bg-white px-3 py-2 text-[13px]">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) =>
+                    setAssignments((current) =>
+                      e.target.checked
+                        ? [...current, { id: item.id, sortOrder: current.length }]
+                        : current.filter((entry) => entry.id !== item.id)
+                    )
+                  }
+                  className="mt-0.5"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium text-[#1d1916]">{item.label}</div>
+                  <div className="truncate text-[11px] text-[#8a8075]">{item.sublabel}</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={isPending}
+          className={`${adminSecondaryButtonClassName} mt-3 w-full`}
+        >
+          Save {title.toLowerCase()}
+        </button>
+      </details>
+    </AdminCard>
+  );
+}
+
+function OptionEditor({
+  option,
+  optionIndex,
+  setOptions,
+  canDelete,
+  isPending,
+  onSaveOption,
+  onAddValue,
+  onDeleteOption,
+  onSaveValue,
+  onDeleteValue,
+}: {
+  option: ProductOptionDraft;
+  optionIndex: number;
+  setOptions: React.Dispatch<React.SetStateAction<ProductOptionDraft[]>>;
+  canDelete: boolean;
+  isPending: boolean;
+  onSaveOption: () => void;
+  onAddValue: () => void;
+  onDeleteOption: () => void;
+  onSaveValue: (value: ProductOptionDraft["values"][number]) => void;
+  onDeleteValue: (valueId: string) => void;
+}) {
+  const updateOptionField = <K extends keyof ProductOptionDraft>(field: K, value: ProductOptionDraft[K]) => {
+    setOptions((current) => current.map((entry, i) => (i === optionIndex ? { ...entry, [field]: value } : entry)));
+  };
+
+  const updateValueField = <K extends keyof ProductOptionDraft["values"][number]>(
+    valueIndex: number,
+    field: K,
+    value: ProductOptionDraft["values"][number][K]
+  ) => {
+    setOptions((current) =>
+      current.map((entry, i) =>
+        i === optionIndex
+          ? {
+              ...entry,
+              values: entry.values.map((v, vi) => (vi === valueIndex ? { ...v, [field]: value } : v)),
+            }
+          : entry
+      )
+    );
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#ece2d2] bg-white p-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <AdminField label="Code">
+          <input
+            value={option.code}
+            onChange={(e) => updateOptionField("code", e.target.value)}
+            className={adminInputClassName}
+          />
+        </AdminField>
+        <AdminField label="Label">
+          <input
+            value={option.label}
+            onChange={(e) => updateOptionField("label", e.target.value)}
+            className={adminInputClassName}
+          />
+        </AdminField>
+        <AdminField label="Mode">
+          <select
+            value={option.selectionMode}
+            onChange={(e) => updateOptionField("selectionMode", e.target.value as "SINGLE" | "MULTI")}
+            className={adminInputClassName}
+          >
+            <option value="SINGLE">Single</option>
+            <option value="MULTI">Multi</option>
+          </select>
+        </AdminField>
+        <AdminField label="Sort">
+          <input
+            type="number"
+            value={option.sortOrder}
+            onChange={(e) => updateOptionField("sortOrder", Number(e.target.value))}
+            className={adminInputClassName}
+          />
+        </AdminField>
+      </div>
+      <label className="mt-3 flex items-center gap-2 text-[12px] text-[#62574c]">
+        <input
+          type="checkbox"
+          checked={option.required}
+          onChange={(e) => updateOptionField("required", e.target.checked)}
+        />
+        Required selection
+      </label>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={onSaveOption} disabled={isPending} className={adminButtonClassName}>
+          Save option
+        </button>
+        <button type="button" onClick={onAddValue} disabled={isPending} className={adminSecondaryButtonClassName}>
+          Add value
+        </button>
+        {canDelete ? (
+          <button type="button" onClick={onDeleteOption} disabled={isPending} className={adminDangerButtonClassName}>
+            Delete option
+          </button>
+        ) : null}
+      </div>
+
+      {option.values.length > 0 ? (
+        <div className="mt-4 space-y-3">
+          {option.values.map((value, valueIndex) => (
+            <div key={value.id} className="rounded-xl border border-[#ece2d2] bg-[#fbf8f3] p-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <AdminField label="Value">
+                  <input
+                    value={value.value}
+                    onChange={(e) => updateValueField(valueIndex, "value", e.target.value)}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+                <AdminField label="Label">
+                  <input
+                    value={value.label}
+                    onChange={(e) => updateValueField(valueIndex, "label", e.target.value)}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+                <AdminField label="Δ price">
+                  <input
+                    type="number"
+                    value={value.priceDeltaAmount}
+                    onChange={(e) => updateValueField(valueIndex, "priceDeltaAmount", Number(e.target.value))}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+                <AdminField label="Sort">
+                  <input
+                    type="number"
+                    value={value.sortOrder}
+                    onChange={(e) => updateValueField(valueIndex, "sortOrder", Number(e.target.value))}
+                    className={adminInputClassName}
+                  />
+                </AdminField>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => onSaveValue(value)} disabled={isPending} className={adminButtonClassName}>
+                  Save value
+                </button>
+                {canDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteValue(value.id)}
+                    disabled={isPending}
+                    className={adminDangerButtonClassName}
+                  >
+                    Delete value
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
