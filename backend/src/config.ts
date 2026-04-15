@@ -3,7 +3,7 @@ import { z } from "zod";
 
 dotenv.config();
 
-const storageDriverSchema = z.enum(["local", "s3", "vercel-blob"]);
+const storageDriverSchema = z.enum(["local", "s3"]);
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(4001),
@@ -22,7 +22,6 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(true),
   S3_PUBLIC_URL_BASE: z.string().url().optional(),
-  BLOB_READ_WRITE_TOKEN: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);
