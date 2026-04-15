@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import type { S3Client as S3ClientType } from "@aws-sdk/client-s3";
 
 import { env } from "../config.js";
 
@@ -36,14 +36,17 @@ async function storeLocally(fileName: string, buffer: Buffer): Promise<StoredUpl
   } satisfies StoredUpload;
 }
 
-let s3Client: S3Client | null = null;
+let s3Client: S3ClientType | null = null;
 
-function getS3Client() {
+async function getS3Client() {
   if (!env.S3_BUCKET || !env.S3_REGION || !env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY) {
     throw new Error("S3 storage is configured without complete credentials");
   }
 
   if (!s3Client) {
+    // Dynamic import keeps the ~7 MB AWS SDK out of the cold-start critical
+    // path. The SDK only loads the first time an upload hits this driver.
+    const { S3Client } = await import("@aws-sdk/client-s3");
     s3Client = new S3Client({
       region: env.S3_REGION,
       endpoint: env.S3_ENDPOINT,
@@ -59,7 +62,8 @@ function getS3Client() {
 }
 
 async function storeInS3(fileName: string, buffer: Buffer, contentType?: string): Promise<StoredUpload> {
-  const client = getS3Client();
+  const client = await getS3Client();
+  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
   await client.send(
     new PutObjectCommand({
       Bucket: env.S3_BUCKET,
