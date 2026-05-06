@@ -14,6 +14,8 @@ type ArticleManagerProps = {
   canDelete: boolean;
 };
 
+type UploadedAsset = { id: string; url: string; altText?: string | null };
+
 function buildState(article: Article | null) {
   return {
     slug: article?.slug ?? "",
@@ -38,10 +40,53 @@ export default function ArticleManager({ items, media, canDelete }: ArticleManag
   const [isPending, startTransition] = useTransition();
   const selectedItem = items.find((item) => item.id === selectedId) ?? null;
   const [draft, setDraft] = useState(() => buildState(selectedItem));
+  // Locally-uploaded assets that haven't yet appeared in the prop-supplied
+  // `media` list (the parent server component is the source of truth post-
+  // refresh, but until refresh fires we need to render a thumbnail for the
+  // just-uploaded id). Keyed by media-asset id.
+  const [recentlyUploaded, setRecentlyUploaded] = useState<Record<string, UploadedAsset>>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     setDraft(buildState(selectedItem));
+    setUploadError(null);
   }, [selectedItem]);
+
+  const handleFileUpload = async (file: File) => {
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("kind", "IMAGE");
+      const res = await fetch("/api/admin/proxy/media/upload", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await res.json().catch(() => null)) as { item?: UploadedAsset; error?: string } | null;
+      if (!res.ok || !data?.item) {
+        setUploadError(data?.error ?? "Upload failed. Try again.");
+        return;
+      }
+      setRecentlyUploaded((current) => ({ ...current, [data.item!.id]: data.item! }));
+      setDraft((current) => ({ ...current, primaryImageId: data.item!.id }));
+    } catch {
+      setUploadError("Couldn't reach the server. Try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Resolve the URL for the currently-selected primaryImageId so we can
+  // render a thumbnail. Looks first at recently-uploaded (this session),
+  // then falls back to the media library list passed from the server.
+  const currentImageAsset: { url: string; altText?: string | null } | null = (() => {
+    if (!draft.primaryImageId) return null;
+    if (recentlyUploaded[draft.primaryImageId]) return recentlyUploaded[draft.primaryImageId];
+    const fromLibrary = media.find((asset) => asset.id === draft.primaryImageId);
+    return fromLibrary ?? null;
+  })();
 
   const save = (method: "POST" | "PATCH") => {
     startTransition(async () => {
@@ -173,14 +218,63 @@ export default function ArticleManager({ items, media, canDelete }: ArticleManag
               <input type="datetime-local" value={draft.publishedAt} onChange={(event) => setDraft((current) => ({ ...current, publishedAt: event.target.value }))} className={adminInputClassName} />
             </AdminField>
             <AdminField label="Primary image">
-              <select value={draft.primaryImageId} onChange={(event) => setDraft((current) => ({ ...current, primaryImageId: event.target.value }))} className={adminInputClassName}>
-                <option value="">None</option>
-                {media.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.altText || asset.url}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-3">
+                {currentImageAsset ? (
+                  <div className="relative h-28 w-40 overflow-hidden rounded-[10px] border border-[#e2d7c7] bg-[#faf6ee]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={currentImageAsset.url}
+                      alt={currentImageAsset.altText ?? "Primary image preview"}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <label className={`${adminSecondaryButtonClassName} cursor-pointer`}>
+                    {isUploading ? "Uploading…" : "Upload image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isUploading}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          handleFileUpload(file);
+                          // Reset the input so the same file can be re-picked.
+                          event.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                  <select
+                    value={draft.primaryImageId}
+                    onChange={(event) => setDraft((current) => ({ ...current, primaryImageId: event.target.value }))}
+                    className={adminInputClassName}
+                  >
+                    <option value="">From media library…</option>
+                    {media.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.altText || asset.url}
+                      </option>
+                    ))}
+                  </select>
+                  {draft.primaryImageId ? (
+                    <button
+                      type="button"
+                      onClick={() => setDraft((current) => ({ ...current, primaryImageId: "" }))}
+                      className={adminSecondaryButtonClassName}
+                    >
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+                {uploadError ? (
+                  <p className="rounded-2xl border border-[#e7c1ba] bg-[#fff1ee] px-3 py-2 text-[12px] text-[#9f4332]">
+                    {uploadError}
+                  </p>
+                ) : null}
+              </div>
             </AdminField>
           </div>
 

@@ -7,9 +7,12 @@ export type SeijakuLifeArticle = {
   category: string;
   date: string;
   excerpt: string;
+  bodyMarkdown: string | null;
   image?: string;
   imageAlt?: string;
   featured?: boolean;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
 };
 
 type BackendArticle = {
@@ -58,9 +61,12 @@ function toViewModel(article: BackendArticle): SeijakuLifeArticle {
     category: article.category,
     date: formatArticleDate(article.publishedAt),
     excerpt: article.excerpt,
+    bodyMarkdown: article.bodyMarkdown,
     image: article.primaryImage?.url ?? undefined,
     imageAlt: article.primaryImage?.altText ?? undefined,
     featured: article.featured,
+    seoTitle: article.seoTitle,
+    seoDescription: article.seoDescription,
   };
 }
 
