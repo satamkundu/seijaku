@@ -233,6 +233,14 @@ Seed impact:
 
 This is the first domain migration under the post-Phase-0 caching contract (Decision #15). The same pattern is expected for Retreats, Programs, Shop Bridge Pages, and Products in later phases.
 
+**Detail-page rendering + admin upload polish.** A later iteration brought the article detail page (`/a-seijaku-life/[slug]`) to industry-standard editorial layout and fixed two latent gaps:
+
+- `seijaku-life-types.ts#toViewModel` previously dropped `bodyMarkdown` from the public payload, so the detail page only had the excerpt to render and admins saw their full markdown content silently never appear on public. Now `SeijakuLifeArticle` carries `bodyMarkdown` (plus `seoTitle` / `seoDescription`) end-to-end.
+- The detail page (`app/a-seijaku-life/[slug]/page.tsx`) renders a hero image with caption, header (category eyebrow → serif title → byline row with `Seijaku Editorial · published month · estimated reading time`), excerpt as a serif dek, full body via `<ArticleBody>` (a server component wrapping `react-markdown` + `remark-gfm`), and a 2-up "More from Seijaku Life" footer that excludes the current slug. `generateMetadata` reads `seoTitle` / `seoDescription` with title/excerpt fallbacks.
+- `<ArticleBody>` (`frontend/src/components/article/ArticleBody.tsx`) styles markdown via Tailwind arbitrary descendant selectors — no `@tailwindcss/typography` dependency. **Safe HTML by default** (`react-markdown` escapes raw HTML); `rehype-raw` is deliberately not enabled. Admin content is editor-trusted, but XSS containment stays.
+- New deps: `react-markdown`, `remark-gfm`. Server-component compatible; lands in the server payload for the article detail route only.
+- `ArticleManager` admin form now offers a native **Upload image** button alongside the existing library `<select>` for `primaryImage`. Uploads POST to `/api/admin/proxy/media/upload` and write the returned media-asset id straight into `primaryImageId`. A locally-cached thumbnail renders before the parent server-component refresh so admins see immediate confirmation. Single-shot, no retry, inline error.
+
 ### 17. Retreats Are Backend-Owned; `imagePosition` Dropped
 
 Status: Active
