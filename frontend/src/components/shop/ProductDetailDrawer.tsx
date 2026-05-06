@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-import { getShopProductUseCase, type ProductView } from "@/src/lib/product-types";
+import { getShopProductUseCase, hasVariantSelector, type ProductView } from "@/src/lib/product-types";
 
 import ShopProductActions from "./ShopProductActions";
 
@@ -23,7 +23,8 @@ export default function ProductDetailDrawer({ item, isOpen, onClose }: ProductDe
   const activeIndex = activeMedia !== null && gallery[activeMedia] ? activeMedia : 0;
   const activeImage = gallery[activeIndex] ?? item?.image;
   const useCase = item ? getShopProductUseCase(item) : undefined;
-  const customizationOptions = item?.customizationOptions ?? [];
+  const showVariants = item ? hasVariantSelector(item) : false;
+  const customizationOptions = showVariants ? item?.customizationOptions ?? [] : [];
   const allRequiredSelected = customizationOptions
     .filter((option) => option.required)
     .every((option) => Boolean(selectedOptions[option.label]));
