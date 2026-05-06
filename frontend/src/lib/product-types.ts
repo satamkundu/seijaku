@@ -229,3 +229,18 @@ export function getShopProductUseCase(item: ProductView): ShopUseCase | undefine
   if (item.type === "Diffuser") return "diffusion objects";
   return undefined;
 }
+
+// Editorial suppression: products listed here render no variant picker on
+// the storefront, even if the backend record carries `customizationOptions`.
+// Keep this list small and update it in lockstep with admin slug renames.
+export const slugsWithoutVariantSelector: ReadonlySet<string> = new Set([
+  "Kolkata-tea-diffuser",
+  "coffee-ceramic-diffuser-set",
+]);
+
+export function hasVariantSelector(
+  item: Pick<ProductView, "slug" | "customizationOptions">,
+): boolean {
+  if (slugsWithoutVariantSelector.has(item.slug)) return false;
+  return Boolean(item.customizationOptions && item.customizationOptions.length > 0);
+}

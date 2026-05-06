@@ -9,7 +9,7 @@ import ProductDetailDrawer from "@/src/components/shop/ProductDetailDrawer";
 import ShopProductActions from "@/src/components/shop/ShopProductActions";
 import type { ShopBridgePageConfig } from "@/src/lib/bridge-page-types";
 import { canonicalShopRoutes } from "@/src/lib/shop-routes";
-import { type ProductView } from "@/src/lib/product-types";
+import { hasVariantSelector, type ProductView } from "@/src/lib/product-types";
 
 import DiffuserPageIntro from "./DiffuserPageIntro";
 
@@ -152,10 +152,10 @@ function DiffuserFeatureRow({
   onViewDetails,
 }: DiffuserFeatureRowProps) {
   const reverse = index % 2 === 1;
-  const firstOption = product.customizationOptions?.[0];
+  const hasOptions = hasVariantSelector(product);
+  const firstOption = hasOptions ? product.customizationOptions?.[0] : undefined;
   const variantLabel = firstOption?.label;
   const options = firstOption?.values ?? [];
-  const hasOptions = Boolean(variantLabel && options.length > 0);
   const indexLabel = String(index + 1).padStart(2, "0");
   const selectId = `${product.slug}-variant`;
 
