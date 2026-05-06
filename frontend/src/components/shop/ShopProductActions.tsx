@@ -43,7 +43,10 @@ export default function ShopProductActions({
 
   const handleBuyNow = () => {
     beginCheckout(item.slug, selection);
-    router.push(canonicalShopRoutes.checkout);
+    // Pass the slug as a URL query param too. URL is the most reliable
+    // bridge across navigation — beats both React-state propagation timing
+    // (Next.js prefetches /checkout) and a deferred localStorage write.
+    router.push(`${canonicalShopRoutes.checkout}?item=${encodeURIComponent(item.slug)}`);
   };
 
   return (

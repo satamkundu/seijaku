@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { loadRazorpayCheckout, type RazorpayPaymentResponse } from "@/src/lib/razorpay";
 import { canonicalShopRoutes } from "@/src/lib/shop-routes";
@@ -24,9 +24,20 @@ type CreateOrderResponse = {
 
 export default function CheckoutPageClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { checkoutItemSlug, checkoutVariantLabel, checkoutSelectedOptions, clearCheckout } = useShopState();
+  // Resolve the active slug in priority order: ?item= URL query (most
+  // reliable across prefetch/navigation races, since URL travels with the
+  // navigation) → in-memory provider state. Buy Now sets both; landing here
+  // from another path (reload, deeplink) hits provider state (which itself
+  // hydrates from localStorage on first mount).
+  const querySlug = searchParams.get("item");
+  const activeSlug = useMemo(
+    () => (querySlug && querySlug.length > 0 ? querySlug : checkoutItemSlug),
+    [querySlug, checkoutItemSlug],
+  );
   const [item, setItem] = useState<ProductView | null>(null);
-  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(Boolean(checkoutItemSlug));
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(Boolean(activeSlug));
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -39,7 +50,7 @@ export default function CheckoutPageClient() {
   // the component falls through to the empty state (matches the pre-migration
   // registry-miss branch). Cached in `item` state so rerenders don't refetch.
   useEffect(() => {
-    if (!checkoutItemSlug) {
+    if (!activeSlug) {
       setItem(null);
       setIsInitialLoading(false);
       return;
@@ -48,7 +59,7 @@ export default function CheckoutPageClient() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/public/catalog/products/${encodeURIComponent(checkoutItemSlug)}`, {
+        const res = await fetch(`/api/public/catalog/products/${encodeURIComponent(activeSlug)}`, {
           headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -63,7 +74,7 @@ export default function CheckoutPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [checkoutItemSlug]);
+  }, [activeSlug]);
 
   if (isInitialLoading) {
     return (

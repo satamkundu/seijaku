@@ -120,6 +120,28 @@ export function ShopStateProvider({ children }: { children: React.ReactNode }) {
         );
       },
       beginCheckout: (slug, selection) => {
+        // Write to localStorage SYNCHRONOUSLY before the React state update so
+        // the value is durable even if the prefetched /checkout route mounts
+        // before our setState commits. The deferred useEffect below would
+        // otherwise miss this race.
+        if (typeof window !== "undefined") {
+          try {
+            window.localStorage.setItem(CHECKOUT_KEY, slug);
+            if (selection?.label) {
+              window.localStorage.setItem(CHECKOUT_VARIANT_KEY, selection.label);
+            } else {
+              window.localStorage.removeItem(CHECKOUT_VARIANT_KEY);
+            }
+            if (selection?.options && Object.keys(selection.options).length > 0) {
+              window.localStorage.setItem(CHECKOUT_OPTIONS_KEY, JSON.stringify(selection.options));
+            } else {
+              window.localStorage.removeItem(CHECKOUT_OPTIONS_KEY);
+            }
+          } catch {
+            // Private browsing or storage disabled — fall back to the
+            // in-memory React state path. URL query is the third belt.
+          }
+        }
         setCheckoutItemSlug(slug);
         setCheckoutVariantLabel(selection?.label ?? null);
         setCheckoutSelectedOptions(selection?.options ?? null);
