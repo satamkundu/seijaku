@@ -43,7 +43,9 @@ export default function CollectionPageClient() {
               headers: { Accept: "application/json" },
             });
             if (!res.ok) return null;
-            const view = normalizeBackendProduct((await res.json()) as BackendProduct);
+            // Backend returns { item: <product> }; unwrap before normalizing.
+            const body = (await res.json()) as { item: BackendProduct };
+            const view = normalizeBackendProduct(body.item);
             return view ? ([slug, view] as const) : null;
           } catch {
             return null;

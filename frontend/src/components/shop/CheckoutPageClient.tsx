@@ -63,7 +63,10 @@ export default function CheckoutPageClient() {
           headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const view = normalizeBackendProduct((await res.json()) as BackendProduct);
+        // Backend returns { item: <product> }; unwrap before normalizing or
+        // normalizeBackendProduct sees missing fields and returns null.
+        const body = (await res.json()) as { item: BackendProduct };
+        const view = normalizeBackendProduct(body.item);
         if (!cancelled) setItem(view);
       } catch {
         if (!cancelled) setItem(null);
