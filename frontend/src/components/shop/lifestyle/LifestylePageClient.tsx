@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import ProductDetailDrawer from "@/src/components/shop/ProductDetailDrawer";
+import type { ShopBridgePageConfig } from "@/src/lib/bridge-page-types";
 import { canonicalShopRoutes } from "@/src/lib/shop-routes";
 import { type ProductView } from "@/src/lib/product-types";
 
@@ -18,10 +19,11 @@ import {
 } from "./lifestyleSetConfig";
 
 type LifestylePageClientProps = {
+  page: ShopBridgePageConfig;
   products: ProductView[];
 };
 
-export default function LifestylePageClient({ products }: LifestylePageClientProps) {
+export default function LifestylePageClient({ page, products }: LifestylePageClientProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,8 +60,8 @@ export default function LifestylePageClient({ products }: LifestylePageClientPro
         <LifestylePageIntro
           title="Composed ritual sets for everyday calm"
           intro="Objects that shape quiet habit, morning, evening, pause, and return."
-          imageSrc="/images/Seijaku Lifestyle img 1.png"
-          imageAlt="Seijaku ritual objects arranged as a composed lifestyle still life."
+          imageSrc={page.heroImage}
+          imageAlt={page.heroImageAlt}
         >
           <Link
             href="#daytime-pauses"

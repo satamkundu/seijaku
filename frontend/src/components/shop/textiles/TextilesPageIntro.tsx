@@ -7,16 +7,28 @@ type TextilesPageIntroProps = {
   title: string;
   intro: string;
   secondaryIntro?: string;
+  imageSrc?: string;
+  imageAlt?: string;
+  imagePosition?: string;
   children?: ReactNode;
 };
+
+const FALLBACK_IMAGE = "/images/quiet-tea-ritual-box-lifestyle-neutral.png";
+const FALLBACK_ALT = "Seijaku textiles arranged in a quiet editorial still life with warm natural tones.";
 
 export default function TextilesPageIntro({
   eyebrow,
   title,
   intro,
   secondaryIntro,
+  imageSrc,
+  imageAlt,
+  imagePosition,
   children,
 }: TextilesPageIntroProps) {
+  const resolvedSrc = imageSrc && imageSrc.length > 0 ? imageSrc : FALLBACK_IMAGE;
+  const resolvedAlt = imageAlt && imageAlt.length > 0 ? imageAlt : FALLBACK_ALT;
+  const positionClass = imagePosition && imagePosition.length > 0 ? imagePosition : "object-center";
   return (
     <section className="section-primary pb-10 pt-20 sm:pb-12 sm:pt-24">
       <div className="page-container max-w-[1200px]">
@@ -38,12 +50,12 @@ export default function TextilesPageIntro({
           <div className="relative overflow-hidden rounded-[24px] border border-[rgba(86,76,64,0.1)] bg-[#e9e0d3] p-3 shadow-[0_14px_28px_rgba(41,34,27,0.05)]">
             <div className="relative aspect-[4/3.25] overflow-hidden rounded-[18px] bg-[#ddd3c6]">
               <Image
-                src="/images/quiet-tea-ritual-box-lifestyle-neutral.png"
-                alt="Seijaku textiles arranged in a quiet editorial still life with warm natural tones."
+                src={resolvedSrc}
+                alt={resolvedAlt}
                 fill
                 priority
                 sizes="(min-width: 1024px) 34vw, 100vw"
-                className="object-cover object-center"
+                className={`object-cover ${positionClass}`}
               />
             </div>
             <div className="pointer-events-none absolute inset-x-7 bottom-7 rounded-[16px] border border-white/30 bg-[linear-gradient(180deg,rgba(255,255,255,0.26),rgba(255,255,255,0.08))] p-4 backdrop-blur-[1.5px]">
