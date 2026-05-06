@@ -179,7 +179,9 @@ export async function fetchProducts(): Promise<ProductView[]> {
 // server components can let that bubble to Next's error boundary.
 export async function fetchProductBySlug(slug: string): Promise<ProductView | null> {
   try {
-    const item = await publicBackendJson<BackendProduct>(
+    // Backend wraps the product in { item: ... }; unwrap before normalizing
+    // or normalizeBackendProduct sees missing fields and returns null.
+    const { item } = await publicBackendJson<{ item: BackendProduct }>(
       `/catalog/products/${encodeURIComponent(slug)}`,
       { tags: [cacheTags.products] },
     );
