@@ -48,6 +48,7 @@ Public:
 - `GET  /catalog/products`, `/catalog/products/:slug`, `/catalog/bridge-pages/:slug`
 - `GET  /content/articles`, `/content/articles/:slug`, `/content/retreats`, `/content/retreats/:slug`, `/content/programs`, `/content/programs/:slug`, `/content/story/current`, `/content/site-settings`
 - `POST /lead/order-requests`, `/lead/newsletter-subscriptions`, `/lead/program-reservations`, `/lead/retreat-inquiries`, `/lead/product-notifications`
+- `POST /payments/orders`, `/payments/verify`, `/payments/webhook`; `GET /payments/orders/:id` (Decision #33 — Razorpay-backed checkout). The webhook path is the only route that takes raw bytes — see the Webhooks section below. The legacy `/lead/order-requests` POST is no longer called by `/checkout` after Decision #33; kept around for rollback parity.
 
 Admin (all under `/admin`, all JWT-guarded):
 - `auth/login`, `auth/me`
@@ -102,6 +103,12 @@ Migrations: the Render build command uses `DATABASE_URL` for `prisma migrate dep
 Current prod wiring: `STORAGE_DRIVER=s3` pointing at Supabase; `CORS_ORIGIN=https://seijaku-kappa.vercel.app`.
 
 Notify Me admin ping (all optional; feature opt-in): `ADMIN_NOTIFICATION_EMAIL`, `NOTIFIER_FROM_EMAIL`, `RESEND_API_KEY`. While unset, `src/lib/notifier.ts` silently skips dispatch and the `ProductNotification` row still surfaces in `/admin/leads`. See `DECISIONS.md#14` for the rationale on keeping the dispatcher stubbed.
+
+Razorpay (all required at boot — Zod fail-fast, no soft mode): `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`. The first two come from the Razorpay Dashboard → API Keys (or Test Keys). The webhook secret is generated when you create the webhook in Settings → Webhooks (it's separate from key_secret). For local dev that doesn't exercise payments, any non-empty placeholder works (the `.env.example` ships test placeholder strings); just don't run a real transaction with placeholder values. See `DECISIONS.md#33`.
+
+## Webhooks
+
+Razorpay signs the **raw request body** for webhooks, so the global `express.json()` parser would mangle the bytes before signature verification. `src/app.ts` registers `express.raw({ type: "application/json" })` scoped to `/payments/webhook` BEFORE the json parser. The handler in `src/routes/payments.ts` reads `req.body` as a `Buffer` and passes it straight to `verifyWebhookSignature()`. If you add a new webhook route, follow the same pattern — never apply json parsing before signature verification.
 
 ## Patterns To Follow
 

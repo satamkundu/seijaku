@@ -25,6 +25,12 @@ const envSchema = z.object({
   ADMIN_NOTIFICATION_EMAIL: z.string().optional(),
   NOTIFIER_FROM_EMAIL: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  // Razorpay payments. All three required so the backend refuses to start
+  // without them — payments must not silently no-op in any environment
+  // that runs the payments router.
+  RAZORPAY_KEY_ID: z.string().min(1),
+  RAZORPAY_KEY_SECRET: z.string().min(1),
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
 });
 
 export const env = envSchema.parse(process.env);

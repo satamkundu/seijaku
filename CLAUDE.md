@@ -72,7 +72,7 @@ Login: http://localhost:3000/admin/login (or :3001).
 - Admin session boundary: `frontend/src/lib/admin-session.ts`, `frontend/src/lib/admin-backend.ts`, `frontend/src/lib/backend.ts`
 - BFF proxy: `frontend/src/app/api/admin/session/route.ts`, `frontend/src/app/api/admin/proxy/[...path]/route.ts`, `frontend/src/app/api/public/[...path]/route.ts`
 - Public storefront structure + taxonomy: `frontend/src/lib/shop-routes.ts`, `frontend/src/lib/shop-taxonomy.ts`, `frontend/src/lib/product-types.ts`, `frontend/src/lib/navigation.ts`. Product content itself comes from the backend via these modules' fetchers.
-- Backend entrypoint: `backend/src/app.ts`, `backend/src/routes/admin.ts`, `backend/src/routes/public.ts`
+- Backend entrypoint: `backend/src/app.ts`, `backend/src/routes/admin.ts`, `backend/src/routes/public.ts`, `backend/src/routes/payments.ts` (Razorpay)
 - Schema: `backend/prisma/schema.prisma`
 
 ## Conventions & Rules

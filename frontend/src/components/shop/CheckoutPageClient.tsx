@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
+import { loadRazorpayCheckout, type RazorpayPaymentResponse } from "@/src/lib/razorpay";
 import { canonicalShopRoutes } from "@/src/lib/shop-routes";
 import {
   normalizeBackendProduct,
@@ -12,7 +14,16 @@ import {
 
 import { useShopState } from "./ShopStateProvider";
 
+type CreateOrderResponse = {
+  orderId: string;
+  razorpayOrderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+};
+
 export default function CheckoutPageClient() {
+  const router = useRouter();
   const { checkoutItemSlug, checkoutVariantLabel, checkoutSelectedOptions, clearCheckout } = useShopState();
   const [item, setItem] = useState<ProductView | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(Boolean(checkoutItemSlug));
@@ -183,49 +194,99 @@ export default function CheckoutPageClient() {
                     setNotice(null);
                     setError(null);
 
-                    const response = await fetch("/api/public/lead/order-requests", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        name,
-                        email,
-                        phone,
-                        notes,
-                        source: "frontend-checkout",
-                        items: [
-                          {
-                            productSlug: item.slug,
-                            quantity: 1,
-                            selectedOptions: checkoutSelectedOptions ?? undefined,
-                            variantSummary: checkoutVariantLabel ?? undefined,
-                          },
-                        ],
-                      }),
-                    });
-
-                    const data = (await response.json().catch(() => null)) as { error?: string } | null;
-
-                    if (!response.ok) {
-                      setError(data?.error ?? "Unable to place order request.");
+                    // 1. Create the Razorpay order on our backend.
+                    let orderRes: Response;
+                    try {
+                      orderRes = await fetch("/api/public/payments/orders", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          name,
+                          email,
+                          phone,
+                          notes,
+                          source: "frontend-checkout",
+                          items: [
+                            {
+                              productSlug: item.slug,
+                              quantity: 1,
+                              selectedOptions: checkoutSelectedOptions ?? undefined,
+                              variantSummary: checkoutVariantLabel ?? undefined,
+                            },
+                          ],
+                        }),
+                      });
+                    } catch {
+                      setError("Couldn't reach our servers. Check your connection and try again.");
                       return;
                     }
 
-                    clearCheckout();
-                    setName("");
-                    setEmail("");
-                    setPhone("");
-                    setNotes("");
-                    setNotice("Order request received. Seijaku will reach out with fulfillment details.");
+                    if (!orderRes.ok) {
+                      const data = (await orderRes.json().catch(() => null)) as { error?: string } | null;
+                      setError(data?.error ?? "Unable to start payment. Please try again.");
+                      return;
+                    }
+                    const order = (await orderRes.json()) as CreateOrderResponse;
+
+                    // 2. Load Razorpay Checkout SDK (10s timeout, single shot).
+                    let Razorpay;
+                    try {
+                      Razorpay = await loadRazorpayCheckout();
+                    } catch {
+                      setError("Payment provider didn't load. Refresh and try again.");
+                      return;
+                    }
+
+                    // 3. Open Razorpay Checkout. handler() runs after a successful charge.
+                    const rzp = new Razorpay({
+                      key: order.keyId,
+                      order_id: order.razorpayOrderId,
+                      amount: order.amount,
+                      currency: order.currency,
+                      name: "Seijaku",
+                      description: item.title,
+                      prefill: { name, email, contact: phone },
+                      theme: { color: "#2e4a36" },
+                      handler: async (response: RazorpayPaymentResponse) => {
+                        try {
+                          const verifyRes = await fetch("/api/public/payments/verify", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(response),
+                          });
+                          if (verifyRes.ok) {
+                            clearCheckout();
+                            setName("");
+                            setEmail("");
+                            setPhone("");
+                            setNotes("");
+                            router.push(`/checkout/order-confirmed?order=${order.orderId}`);
+                          } else {
+                            setError(
+                              "Payment was received but verification failed. If you were charged, our team will reconcile via webhook within minutes — you'll receive an email.",
+                            );
+                          }
+                        } catch {
+                          setError(
+                            "Payment was received but verification couldn't reach our servers. The webhook will reconcile shortly.",
+                          );
+                        }
+                      },
+                      modal: {
+                        // User dismissed without paying — no row update needed; the
+                        // OrderRequest stays at paymentStatus = CREATED.
+                        ondismiss: () => undefined,
+                      },
+                    });
+                    rzp.open();
                   });
                 }}
                 className="inline-flex w-full items-center justify-center rounded-full bg-[#2e4a36] px-7 py-4 text-[12px] font-medium uppercase tracking-[0.18em] text-[#f4efe8] hover:bg-[#243c2c] disabled:cursor-not-allowed disabled:bg-[#a8a095]"
               >
-                {isPending ? "Sending Request" : "Place Order Request"}
+                {isPending ? "Opening Payment" : "Pay Now"}
               </button>
               <p className="text-[12px] leading-[1.8] text-[#6c6257]">
-                This checkout now submits a real order request while payment capture remains intentionally deferred.
+                Secure checkout via Razorpay. You'll be charged once payment is confirmed.
               </p>
             </div>
           </div>

@@ -91,7 +91,7 @@ Use this layer when:
 
 These records are backend-owned and already live in the database:
 
-- `OrderRequest`
+- `OrderRequest` (also carries Razorpay payment state per Decision #33: `paymentStatus`, `razorpayOrderId`, `razorpayPaymentId`, `razorpaySignature`, `totalAmount` in paise, `currency`)
 - `OrderRequestItem`
 - `NewsletterSubscription`
 - `ProgramReservation`
@@ -103,7 +103,7 @@ These records are backend-owned and already live in the database:
 Current usage:
 
 - newsletter footer form persists to backend
-- checkout creates order requests
+- checkout creates a Razorpay order, persists an `OrderRequest` with `paymentStatus = CREATED`, and reconciles to `PAID` / `FAILED` / `REFUNDED` via the Razorpay webhook (Decision #33)
 - program forms create reservations
 - retreat forms create inquiries
 - Notify Me signups on waitlisted products create product notifications (see `DECISIONS.md` #14)

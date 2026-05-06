@@ -191,7 +191,7 @@ When a domain migrates to backend-fed reads, the server component fetches via `p
 Public write flows now go through the backend via the Next proxy layer:
 
 - footer newsletter signup
-- checkout order requests
+- checkout order requests (now real paid checkouts via Razorpay — see Decision #33)
 - program reservations
 - retreat inquiries
 
@@ -200,6 +200,13 @@ Browser path:
 1. public component submits to `/api/public/*`
 2. Next route handler proxies to backend
 3. backend validates and persists the lead
+
+**Payment writes** (Decision #33) take a slightly different shape. `/checkout`:
+
+1. POSTs `/api/public/payments/orders` → backend creates a Razorpay order (server-to-server) and persists an `OrderRequest` with `paymentStatus = CREATED`.
+2. Loads the Razorpay Checkout SDK and opens the modal with `key_id` + `order_id`.
+3. On a successful charge, the SDK invokes a `handler` that POSTs `/api/public/payments/verify` to flip the row to `PAID`.
+4. Razorpay also calls `https://seijaku-backend.onrender.com/payments/webhook` directly (no proxy) for `payment.captured` / `payment.failed` / `refund.processed`. This server-to-server path is the source of truth and reconciles state if the browser callback is missed.
 
 ### Admin Reads And Writes
 
