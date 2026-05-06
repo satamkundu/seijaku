@@ -6,6 +6,7 @@ import morgan from "morgan";
 
 import { env } from "./config.js";
 import { adminRouter } from "./routes/admin.js";
+import { paymentsRouter } from "./routes/payments.js";
 import { publicRouter } from "./routes/public.js";
 import { errorMiddleware } from "./utils/http.js";
 
@@ -17,6 +18,10 @@ app.use(
     credentials: true,
   })
 );
+// Razorpay signs the RAW request body for webhooks. Register the raw-body
+// middleware ONLY for the webhook path BEFORE the global json parser so
+// the signature verifies against the exact bytes Razorpay signed.
+app.use("/payments/webhook", express.raw({ type: "application/json", limit: "1mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 
@@ -31,5 +36,6 @@ app.get("/health", (_req, res) => {
 });
 
 app.use(publicRouter);
+app.use("/payments", paymentsRouter);
 app.use("/admin", adminRouter);
 app.use(errorMiddleware);

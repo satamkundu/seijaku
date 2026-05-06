@@ -76,8 +76,13 @@ npm run build               # full Next build (used by Vercel)
 - `BACKEND_INTERNAL_URL` — base URL for backend (default `http://localhost:4001`). Must be set in Vercel Preview+Production.
 - `ADMIN_COOKIE_NAME` — optional, defaults to `seijaku-admin-session`.
 - `ADMIN_COOKIE_SECRET` — HMAC secret for the admin session cookie. Required in Vercel Preview+Production.
+- `NEXT_PUBLIC_RAZORPAY_KEY_ID` — Razorpay public key id used by the Checkout SDK (`Razorpay({ key, ... })` in `CheckoutPageClient`). Must be set in Vercel Preview+Production. **Only the `key_id` ever reaches the browser** — `key_secret` and `webhook_secret` are backend-only (Decision #33).
 
-No `NEXT_PUBLIC_*` vars in use — all backend access is server-side by design.
+The `key_id` is the only `NEXT_PUBLIC_*` var in this app. All other backend access is server-side by design.
+
+## Razorpay Checkout Loader
+
+`src/lib/razorpay.ts` lazily injects `https://checkout.razorpay.com/v1/checkout.js` and exports a typed `loadRazorpayCheckout()` that resolves to the global `Razorpay` constructor. Single-shot promise cache; 10s timeout via `setTimeout`; rejects with a typed `Error` on timeout or load failure. `CheckoutPageClient` is the only consumer today — pattern is reusable if other surfaces need to open Razorpay.
 
 ## Common Gotchas
 

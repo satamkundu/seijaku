@@ -5,7 +5,7 @@ Seijaku is a split frontend and backend application for a content-led commerce, 
 Today the repo contains:
 
 - a Next.js App Router frontend for marketing, shop, ritual, checkout, experiences, and admin UI
-- a standalone Express + Prisma + PostgreSQL backend for admin auth, normalized content records, media, and inbound leads
+- a standalone Express + Prisma + PostgreSQL backend for admin auth, normalized content records, media, inbound leads, and Razorpay-backed INR payments
 - a workspace root that coordinates both apps
 - repo docs that describe the current architecture and where the source of truth lives
 

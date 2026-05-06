@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 
 import AdminCard from "@/src/components/admin/AdminCard";
 import AdminStatusBadge from "@/src/components/admin/AdminStatusBadge";
 import { adminButtonClassName } from "@/src/components/admin/AdminField";
 
 type LeadStatus = "NEW" | "REVIEWED" | "CONTACTED" | "CLOSED";
+type PaymentStatus = "CREATED" | "PAID" | "FAILED" | "REFUNDED";
 
 type ProductNotificationItem = {
   id: string;
@@ -18,13 +19,66 @@ type ProductNotificationItem = {
   product?: { title?: string; slug?: string; status?: string } | null;
 };
 
+type OrderRequestItem = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  notes?: string | null;
+  status: LeadStatus;
+  items?: Array<{ product?: { title?: string } }>;
+  paymentStatus?: PaymentStatus;
+  razorpayPaymentId?: string | null;
+  totalAmount?: number;
+  currency?: string;
+};
+
 type LeadInboxProps = {
-  orderRequests: Array<{ id: string; name: string; email: string; phone?: string | null; notes?: string | null; status: LeadStatus; items?: Array<{ product?: { title?: string } }> }>;
+  orderRequests: OrderRequestItem[];
   newsletterSubscriptions: Array<{ id: string; email: string; source?: string | null; status?: string; subscribedAt?: string }>;
   programReservations: Array<{ id: string; name: string; email: string; phone?: string | null; notes?: string | null; status: LeadStatus; program: { name: string } }>;
   retreatInquiries: Array<{ id: string; name: string; email: string; phone?: string | null; notes?: string | null; status: LeadStatus; retreat: { name: string } }>;
   productNotifications: ProductNotificationItem[];
 };
+
+const PAYMENT_BADGE_COLORS: Record<PaymentStatus, string> = {
+  CREATED: "bg-[#e8dec9] text-[#7c6849]",
+  PAID: "bg-[#cde0d2] text-[#2c6541]",
+  FAILED: "bg-[#e7c1ba] text-[#9f4332]",
+  REFUNDED: "bg-[#f1e0c1] text-[#8a6431]",
+};
+
+function maskPaymentId(id: string | null | undefined): string | null {
+  if (!id) return null;
+  if (id.length < 7) return id;
+  return `${id.slice(0, 4)}…${id.slice(-3)}`;
+}
+
+function formatRupees(amountPaise?: number, currency?: string): string | null {
+  if (typeof amountPaise !== "number" || amountPaise <= 0) return null;
+  const amount = (amountPaise / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  return `${currency ?? "INR"} ${amount}`;
+}
+
+function renderOrderPayment(item: OrderRequestItem): ReactNode {
+  const paymentStatus: PaymentStatus = item.paymentStatus ?? "CREATED";
+  const masked = maskPaymentId(item.razorpayPaymentId);
+  const total = formatRupees(item.totalAmount, item.currency);
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+      <span
+        className={`rounded-full px-3 py-1 uppercase tracking-[0.18em] ${PAYMENT_BADGE_COLORS[paymentStatus]}`}
+      >
+        {paymentStatus}
+      </span>
+      {total ? <span className="font-mono text-[#3a3129]">{total}</span> : null}
+      {masked ? <span className="font-mono text-[#7d7267]">{masked}</span> : null}
+    </div>
+  );
+}
 
 const leadStatuses: LeadStatus[] = ["NEW", "REVIEWED", "CONTACTED", "CLOSED"];
 
@@ -60,7 +114,15 @@ export default function LeadInbox({
         ))}
       </div>
 
-      {activeTab === "orders" ? <LeadStatusList title="Order Requests" items={orderRequests} endpoint="lead/order-requests" renderExtra={(item) => item.items?.map((entry) => entry.product?.title).filter(Boolean).join(", ")} /> : null}
+      {activeTab === "orders" ? (
+        <LeadStatusList
+          title="Order Requests"
+          items={orderRequests}
+          endpoint="lead/order-requests"
+          renderExtra={(item) => item.items?.map((entry) => entry.product?.title).filter(Boolean).join(", ")}
+          renderPayment={renderOrderPayment}
+        />
+      ) : null}
       {activeTab === "newsletter" ? (
         <AdminCard>
           <h2 className="text-[24px]">Newsletter Subscribers</h2>
@@ -168,11 +230,13 @@ function LeadStatusList<T extends { id: string; name: string; email: string; pho
   items,
   endpoint,
   renderExtra,
+  renderPayment,
 }: {
   title: string;
   items: T[];
   endpoint: string;
   renderExtra?: (item: T) => string | undefined;
+  renderPayment?: (item: T) => ReactNode;
 }) {
   const router = useRouter();
   const [notice, setNotice] = useState<string | null>(null);
@@ -197,6 +261,7 @@ function LeadStatusList<T extends { id: string; name: string; email: string; pho
                 <p className="mt-2 text-[13px] text-[#6c6157]">{item.email}</p>
                 {item.phone ? <p className="mt-1 text-[13px] text-[#6c6157]">{item.phone}</p> : null}
                 {renderExtra?.(item) ? <p className="mt-2 text-[12px] uppercase tracking-[0.18em] text-[#7d7267]">{renderExtra(item)}</p> : null}
+                {renderPayment ? renderPayment(item) : null}
                 {item.notes ? <p className="mt-3 max-w-[60ch] text-[14px] leading-[1.8] text-[#5f574d]">{item.notes}</p> : null}
               </div>
 

@@ -119,6 +119,13 @@ enum LeadStatus {
   CLOSED
 }
 
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
 enum NewsletterStatus {
   SUBSCRIBED
   UNSUBSCRIBED
@@ -481,18 +488,27 @@ model SiteSetting {
 }
 
 model OrderRequest {
-  id         String             @id @default(cuid())
-  customerId String?
-  email      String
-  name       String
-  phone      String?
-  source     String?
-  status     LeadStatus         @default(NEW)
-  notes      String?
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  customer   Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  items      OrderRequestItem[]
+  id                String             @id @default(cuid())
+  customerId        String?
+  email             String
+  name              String
+  phone             String?
+  source            String?
+  status            LeadStatus         @default(NEW)
+  notes             String?
+  // Razorpay payment fields. `paymentStatus` is orthogonal to `status`
+  // (which tracks ops fulfillment lifecycle). `totalAmount` is in paise
+  // (Razorpay's native unit), regardless of the per-item rupee values.
+  paymentStatus     PaymentStatus      @default(CREATED)
+  razorpayOrderId   String?            @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  totalAmount       Int                @default(0)
+  currency          String             @default("INR")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items             OrderRequestItem[]
 }
 
 model OrderRequestItem {

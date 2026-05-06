@@ -705,6 +705,42 @@ Behavior:
 
 Same pattern as Decision #30 (curated slug pinning at the rendering layer) — appropriate when the brand has explicit editorial curation and admin has no curation UI. Eventually replaceable by a `featured` flag + admin ordering UI on `/admin/articles`; not in this scope.
 
+### 33. Razorpay Payments Wired Into `/checkout`
+
+Status: Active
+
+`/checkout` is a real paid checkout, not a lead-capture form. INR-only, live mode. The Razorpay flow:
+
+1. Frontend `POST /api/public/payments/orders` → backend creates a Razorpay order via `POST https://api.razorpay.com/v1/orders` (Basic auth = `RAZORPAY_KEY_ID:RAZORPAY_KEY_SECRET`) and persists an `OrderRequest` row with `paymentStatus = CREATED`, `razorpayOrderId`, and `totalAmount` in **paise**. The amount is recomputed server-side from `Product.priceAmount` × 100 × quantity — the client never sets the price.
+2. Frontend lazily loads `https://checkout.razorpay.com/v1/checkout.js` (cached promise; 10s timeout) and opens Razorpay Checkout with `key = NEXT_PUBLIC_RAZORPAY_KEY_ID`, `order_id`, `amount`, `currency`.
+3. On the SDK's `handler` callback (browser fast path), frontend `POST /api/public/payments/verify` with `(razorpay_order_id, razorpay_payment_id, razorpay_signature)`. Backend HMAC-verifies (`crypto.timingSafeEqual` over `${order_id}|${payment_id}` keyed by `RAZORPAY_KEY_SECRET`) and conditionally flips the row to `PAID`. User routes to `/checkout/order-confirmed?order=<id>`.
+4. Razorpay also fires server-to-server webhooks at `https://seijaku-backend.onrender.com/payments/webhook` for `payment.captured`, `payment.failed`, `refund.processed`. Webhook is HMAC-verified against the **raw request body** keyed by `RAZORPAY_WEBHOOK_SECRET` (a separate dashboard-generated secret, NOT key_secret). Updates are idempotent — duplicate deliveries are no-op via conditional `paymentStatus IN (...)` filters.
+
+**Webhook is the source of truth.** Verify endpoint is a UX fast path; if the user closes the tab post-charge, the webhook still flips the row. Both updates converge on the same state.
+
+Schema additions (migration `0009_razorpay_payments`, reversible): `PaymentStatus` enum (`CREATED` / `PAID` / `FAILED` / `REFUNDED`); 5 columns on `OrderRequest` (`paymentStatus`, `razorpayOrderId` unique, `razorpayPaymentId`, `razorpaySignature`, `totalAmount`, `currency`). `LeadStatus` (ops fulfillment lifecycle) is preserved and remains orthogonal — admin still tracks NEW/REVIEWED/CONTACTED/CLOSED for shipping flow.
+
+Pre-Razorpay rows survive with `paymentStatus = CREATED`, `totalAmount = 0`. They are legacy leads, not stuck payments. Future cleanup can filter these out of admin views by `totalAmount > 0`.
+
+### Why direct REST instead of the Razorpay Node SDK
+
+The SDK adds ~5MB to backend deps and offers no leverage for what we need (one POST to create an order; HMAC verify is `node:crypto`; webhook is `express.raw`). Lazy-loading the SDK on Render Free's slow cold start would be measurably worse than two `fetch` calls.
+
+### Required env vars
+
+- Backend: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` (all required at boot — Zod fail-fast in `config.ts`).
+- Frontend: `NEXT_PUBLIC_RAZORPAY_KEY_ID` (only — `key_secret` must NEVER reach the browser).
+
+### Webhook delivery vs Render Free wake-up
+
+Razorpay's webhook timeout is ~10s. Render Free sleeps after 15min idle and takes 30–50s to wake. First webhook after idle will time out; Razorpay retries up to 24× with exponential backoff. Eventually consistent. **Strong recommendation**: upgrade Render to Starter ($7/mo) before opening to public traffic. Failing that, the row stays at `CREATED` until a retry succeeds; admin can manually mark via `/admin/leads` if needed.
+
+### Trade-offs
+
+- Live mode means real money. The plan's pre-traffic test path includes a ₹1 dry-run before opening to traffic.
+- The legacy `POST /lead/order-requests` endpoint stays in place (no caller after this change) so rollback is a single-line frontend revert. Delete in a follow-up after Razorpay has been stable for ~1 week.
+- `LeadInbox` widens to surface payment chip + masked `razorpayPaymentId` + total beneath each order. Other lead types unchanged.
+
 ## How To Use This File
 
 - Add a new entry when a structural or cross-cutting product decision is made.
