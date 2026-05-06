@@ -98,7 +98,7 @@ Common: `PORT` (auto-provided by Render), `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS
 Storage: `STORAGE_DRIVER` (`local` | `s3`), `LOCAL_UPLOAD_DIR`.
 - When `s3` (current prod): `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`.
 
-Migrations: the Render build command uses `DATABASE_URL` for `prisma migrate deploy`. If pooled vs direct connection ever matters (e.g., a migration that needs a direct connection against PgBouncer-pooled Neon URLs), add `DATABASE_URL_UNPOOLED` and update the build command to use it explicitly.
+Migrations: `prisma migrate deploy` uses Postgres advisory locks, which don't work over PgBouncer-pooled connections (Neon's default). The Prisma datasource declares `directUrl = env("DATABASE_URL_UNPOOLED")` so migrations route to the unpooled host while runtime queries continue to use the pooled `DATABASE_URL`. **`DATABASE_URL_UNPOOLED` must be set on Render** — it's the same connection string as `DATABASE_URL` with `-pooler` removed from the hostname (also available in Neon's dashboard → Connection Details with the "Pooled connection" toggle off). If unset, Prisma falls back to `url` for migrations and you'll see "Timed out trying to acquire a postgres advisory lock" on deploy.
 
 Current prod wiring: `STORAGE_DRIVER=s3` pointing at Supabase; `CORS_ORIGIN=https://seijaku-kappa.vercel.app`.
 
