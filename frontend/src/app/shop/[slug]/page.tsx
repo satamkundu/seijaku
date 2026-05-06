@@ -95,7 +95,7 @@ export default async function ShopSlugPage({ params }: ShopSlugPageProps) {
   if (slug === "lifestyle") {
     return (
       <Suspense fallback={null}>
-        <LifestylePageClient products={products} />
+        <LifestylePageClient page={page} products={products} />
       </Suspense>
     );
   }
@@ -103,7 +103,7 @@ export default async function ShopSlugPage({ params }: ShopSlugPageProps) {
   if (slug === "scarves-and-squares") {
     return (
       <Suspense fallback={null}>
-        <TextilesPageClient products={products} />
+        <TextilesPageClient page={page} products={products} />
       </Suspense>
     );
   }

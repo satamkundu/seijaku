@@ -4,10 +4,13 @@ import type { ReactNode } from "react";
 type LifestylePageIntroProps = {
   title: string;
   intro: string;
-  imageSrc: string;
-  imageAlt: string;
+  imageSrc?: string;
+  imageAlt?: string;
   children?: ReactNode;
 };
+
+const FALLBACK_IMAGE = "/images/Seijaku Lifestyle img 1.png";
+const FALLBACK_ALT = "Seijaku ritual objects arranged as a composed lifestyle still life.";
 
 export default function LifestylePageIntro({
   title,
@@ -16,6 +19,8 @@ export default function LifestylePageIntro({
   imageAlt,
   children,
 }: LifestylePageIntroProps) {
+  const resolvedSrc = imageSrc && imageSrc.length > 0 ? imageSrc : FALLBACK_IMAGE;
+  const resolvedAlt = imageAlt && imageAlt.length > 0 ? imageAlt : FALLBACK_ALT;
   return (
     <section className="section-primary pb-8 pt-20 sm:pb-10 sm:pt-24">
       <div className="page-container max-w-[1200px]">
@@ -32,8 +37,8 @@ export default function LifestylePageIntro({
           <div className="mx-auto w-full max-w-[380px] rounded-[28px] border border-[rgba(86,76,64,0.08)] bg-[linear-gradient(180deg,rgba(250,247,241,0.92)_0%,rgba(244,239,231,0.98)_100%)] p-5 shadow-md">
             <div className="relative mx-auto aspect-[4/4.85] max-w-[320px] overflow-hidden rounded-[22px] bg-[#e6ddd0]">
               <Image
-                src={imageSrc}
-                alt={imageAlt}
+                src={resolvedSrc}
+                alt={resolvedAlt}
                 fill
                 priority
                 sizes="(min-width: 1024px) 28vw, 86vw"

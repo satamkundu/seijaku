@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import ProductDetailDrawer from "@/src/components/shop/ProductDetailDrawer";
+import type { ShopBridgePageConfig } from "@/src/lib/bridge-page-types";
 import { canonicalShopRoutes } from "@/src/lib/shop-routes";
 import { type ProductView } from "@/src/lib/product-types";
 
@@ -12,6 +13,7 @@ import TextileCategorySection, { type TextileDisplayItem } from "./TextileCatego
 import TextilesPageIntro from "./TextilesPageIntro";
 
 type TextilesPageClientProps = {
+  page: ShopBridgePageConfig;
   products: ProductView[];
 };
 
@@ -31,7 +33,7 @@ function buildDisplayItem(product: ProductView): TextileDisplayItem {
   };
 }
 
-export default function TextilesPageClient({ products }: TextilesPageClientProps) {
+export default function TextilesPageClient({ page, products }: TextilesPageClientProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -77,6 +79,9 @@ export default function TextilesPageClient({ products }: TextilesPageClientProps
           title="Scarves and pocket squares shaped by colour, texture, and quiet ritual"
           intro="These modal silk textiles carry colour, gesture, and a softened trace of scent."
           secondaryIntro="Designed for work, travel, gifting, and everyday refinement."
+          imageSrc={page.heroImage}
+          imageAlt={page.heroImageAlt}
+          imagePosition={page.heroImagePosition}
         >
           <Link
             href="#scarves"
