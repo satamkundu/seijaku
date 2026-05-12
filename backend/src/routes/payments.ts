@@ -9,6 +9,7 @@ import {
   verifyCheckoutSignature,
   verifyWebhookSignature,
 } from "../lib/razorpay.js";
+import { pushOrderToShiprocket } from "../lib/shiprocket-dispatch.js";
 import { asyncHandler, HttpError, parseBody } from "../utils/http.js";
 
 export const paymentsRouter = Router();
@@ -25,10 +26,18 @@ const orderItemSchema = z.object({
 const createOrderSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
-  phone: z.string().optional(),
+  phone: z.string().min(1),
   source: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1),
+  // Shipping address. Required so Shiprocket can be pushed once payment
+  // captures. Decision #34.
+  shippingLine1: z.string().min(1).max(200),
+  shippingLine2: z.string().max(200).optional(),
+  shippingCity: z.string().min(1).max(80),
+  shippingState: z.string().min(1).max(80),
+  shippingPincode: z.string().regex(/^[0-9]{6}$/, "Indian pincode must be 6 digits"),
+  shippingCountry: z.string().default("IN"),
 });
 
 const verifySchema = z.object({
@@ -85,6 +94,12 @@ paymentsRouter.post(
         totalAmount: totalAmountPaise,
         currency: "INR",
         paymentStatus: "CREATED",
+        shippingLine1: payload.shippingLine1,
+        shippingLine2: payload.shippingLine2,
+        shippingCity: payload.shippingCity,
+        shippingState: payload.shippingState,
+        shippingPincode: payload.shippingPincode,
+        shippingCountry: payload.shippingCountry,
         items: {
           create: payload.items.map((item) => {
             const product = bySlug.get(item.productSlug)!;
@@ -152,6 +167,15 @@ paymentsRouter.post(
       throw new HttpError(404, "order_not_found");
     }
 
+    // Fire-and-forget Shiprocket push on the PAID transition. Decision
+    // #34: never block payment confirmation on shipping. Admins can
+    // retry from /admin/leads if this fails.
+    if (updated.count > 0) {
+      pushOrderToShiprocket(orderRequest.id).catch((err) => {
+        console.error("[payments/verify] shiprocket dispatch crashed", err);
+      });
+    }
+
     res.json({
       status: orderRequest.paymentStatus,
       orderId: orderRequest.id,
@@ -214,7 +238,7 @@ paymentsRouter.post(
     // Conditional updates — duplicate deliveries become no-op.
     try {
       if (event === "payment.captured" && orderId && paymentId) {
-        await prisma.orderRequest.updateMany({
+        const updated = await prisma.orderRequest.updateMany({
           where: {
             razorpayOrderId: orderId,
             paymentStatus: { in: ["CREATED", "FAILED"] },
@@ -224,6 +248,19 @@ paymentsRouter.post(
             paymentStatus: "PAID",
           },
         });
+        if (updated.count > 0) {
+          const row = await prisma.orderRequest.findUnique({
+            where: { razorpayOrderId: orderId },
+            select: { id: true },
+          });
+          if (row) {
+            // Fire-and-forget Shiprocket push. Webhook ack returns 200
+            // regardless of dispatch outcome — Decision #34.
+            pushOrderToShiprocket(row.id).catch((err) => {
+              console.error("[payments/webhook] shiprocket dispatch crashed", err);
+            });
+          }
+        }
       } else if (event === "payment.failed" && orderId) {
         await prisma.orderRequest.updateMany({
           where: {

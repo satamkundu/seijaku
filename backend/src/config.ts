@@ -31,6 +31,12 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().min(1),
   RAZORPAY_KEY_SECRET: z.string().min(1),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
+  // Shiprocket credentials. The API has no key-based auth — email +
+  // password are exchanged for a ~10-day JWT (cached in
+  // src/lib/shiprocket.ts). Required at boot so misconfiguration fails
+  // fast instead of silently no-op on first payment success.
+  SHIPROCKET_EMAIL: z.string().email(),
+  SHIPROCKET_PASSWORD: z.string().min(1),
 });
 
 export const env = envSchema.parse(process.env);

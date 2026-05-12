@@ -9,6 +9,16 @@ import { adminButtonClassName } from "@/src/components/admin/AdminField";
 
 type LeadStatus = "NEW" | "REVIEWED" | "CONTACTED" | "CLOSED";
 type PaymentStatus = "CREATED" | "PAID" | "FAILED" | "REFUNDED";
+type ShipmentStatus =
+  | "NOT_CREATED"
+  | "PUSHED"
+  | "PICKED_UP"
+  | "IN_TRANSIT"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "RTO"
+  | "CANCELLED"
+  | "FAILED";
 
 type ProductNotificationItem = {
   id: string;
@@ -31,6 +41,15 @@ type OrderRequestItem = {
   razorpayPaymentId?: string | null;
   totalAmount?: number;
   currency?: string;
+  shippingLine1?: string | null;
+  shippingCity?: string | null;
+  shippingState?: string | null;
+  shippingPincode?: string | null;
+  shipmentStatus?: ShipmentStatus;
+  awbCode?: string | null;
+  courierName?: string | null;
+  trackingUrl?: string | null;
+  shipmentError?: string | null;
 };
 
 type LeadInboxProps = {
@@ -46,6 +65,18 @@ const PAYMENT_BADGE_COLORS: Record<PaymentStatus, string> = {
   PAID: "bg-[#cde0d2] text-[#2c6541]",
   FAILED: "bg-[#e7c1ba] text-[#9f4332]",
   REFUNDED: "bg-[#f1e0c1] text-[#8a6431]",
+};
+
+const SHIPMENT_BADGE_COLORS: Record<ShipmentStatus, string> = {
+  NOT_CREATED: "bg-[#ece2d2] text-[#7d6b56]",
+  PUSHED: "bg-[#dde7d1] text-[#4f6638]",
+  PICKED_UP: "bg-[#d8dfe6] text-[#3b4f60]",
+  IN_TRANSIT: "bg-[#cfd9e0] text-[#3b5060]",
+  OUT_FOR_DELIVERY: "bg-[#c2d2dc] text-[#2f4858]",
+  DELIVERED: "bg-[#cde0d2] text-[#2c6541]",
+  RTO: "bg-[#f1e0c1] text-[#8a6431]",
+  CANCELLED: "bg-[#e2dad2] text-[#665d54]",
+  FAILED: "bg-[#e7c1ba] text-[#9f4332]",
 };
 
 function maskPaymentId(id: string | null | undefined): string | null {
@@ -68,14 +99,80 @@ function renderOrderPayment(item: OrderRequestItem): ReactNode {
   const masked = maskPaymentId(item.razorpayPaymentId);
   const total = formatRupees(item.totalAmount, item.currency);
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+    <div className="mt-3 space-y-2 text-[12px]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full px-3 py-1 uppercase tracking-[0.18em] ${PAYMENT_BADGE_COLORS[paymentStatus]}`}
+        >
+          {paymentStatus}
+        </span>
+        {total ? <span className="font-mono text-[#3a3129]">{total}</span> : null}
+        {masked ? <span className="font-mono text-[#7d7267]">{masked}</span> : null}
+      </div>
+      <ShipmentRow item={item} />
+      {item.shippingLine1 ? (
+        <p className="text-[11px] leading-[1.6] text-[#7d7267]">
+          {item.shippingLine1}, {item.shippingCity}, {item.shippingState} {item.shippingPincode}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ShipmentRow({ item }: { item: OrderRequestItem }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const status: ShipmentStatus = item.shipmentStatus ?? "NOT_CREATED";
+  const canRetry =
+    item.paymentStatus === "PAID" && status === "NOT_CREATED";
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <span
-        className={`rounded-full px-3 py-1 uppercase tracking-[0.18em] ${PAYMENT_BADGE_COLORS[paymentStatus]}`}
+        className={`rounded-full px-3 py-1 uppercase tracking-[0.18em] ${SHIPMENT_BADGE_COLORS[status]}`}
       >
-        {paymentStatus}
+        {status.replaceAll("_", " ")}
       </span>
-      {total ? <span className="font-mono text-[#3a3129]">{total}</span> : null}
-      {masked ? <span className="font-mono text-[#7d7267]">{masked}</span> : null}
+      {item.courierName ? <span className="text-[11px] text-[#5f574d]">{item.courierName}</span> : null}
+      {item.awbCode ? <span className="font-mono text-[11px] text-[#3a3129]">AWB {item.awbCode}</span> : null}
+      {item.trackingUrl ? (
+        <a
+          href={item.trackingUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-[11px] underline decoration-[#3a4f30]/40 underline-offset-2 hover:decoration-[#3a4f30]"
+        >
+          Track
+        </a>
+      ) : null}
+      {canRetry ? (
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => {
+            startTransition(async () => {
+              setError(null);
+              const res = await fetch(
+                `/api/admin/proxy/lead/order-requests/${item.id}/shiprocket/push`,
+                { method: "POST" },
+              );
+              if (!res.ok) {
+                const body = (await res.json().catch(() => null)) as { error?: string } | null;
+                setError(body?.error ?? "Push failed.");
+                return;
+              }
+              router.refresh();
+            });
+          }}
+          className={`${adminButtonClassName} bg-[#2e4a36] text-[#f4efe8] hover:bg-[#243c2c] disabled:cursor-wait disabled:opacity-70`}
+        >
+          {isPending ? "Pushing…" : "Push to Shiprocket"}
+        </button>
+      ) : null}
+      {item.shipmentError && status === "NOT_CREATED" ? (
+        <span className="text-[11px] text-[#9f4332]">Last error: {item.shipmentError}</span>
+      ) : null}
+      {error ? <span className="text-[11px] text-[#9f4332]">{error}</span> : null}
     </div>
   );
 }

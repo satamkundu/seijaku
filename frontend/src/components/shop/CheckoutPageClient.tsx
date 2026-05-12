@@ -42,6 +42,11 @@ export default function CheckoutPageClient() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [shippingLine1, setShippingLine1] = useState("");
+  const [shippingLine2, setShippingLine2] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingState, setShippingState] = useState("");
+  const [shippingPincode, setShippingPincode] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -188,6 +193,55 @@ export default function CheckoutPageClient() {
                   onChange={(event) => setPhone(event.target.value)}
                   className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
                 />
+                <p className="mt-2 text-[10px] uppercase tracking-[0.22em] text-[#8d7d6d]">Shipping address</p>
+                <input
+                  type="text"
+                  placeholder="Address line 1"
+                  value={shippingLine1}
+                  onChange={(event) => setShippingLine1(event.target.value)}
+                  className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                />
+                <input
+                  type="text"
+                  placeholder="Address line 2 (optional)"
+                  value={shippingLine2}
+                  onChange={(event) => setShippingLine2(event.target.value)}
+                  className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={shippingCity}
+                    onChange={(event) => setShippingCity(event.target.value)}
+                    className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                  />
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={shippingState}
+                    onChange={(event) => setShippingState(event.target.value)}
+                    className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Pincode (6 digits)"
+                    value={shippingPincode}
+                    onChange={(event) => setShippingPincode(event.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#faf7f1] px-4 py-3 text-[14px] text-[#2f2924] outline-none focus:border-[#2e4a36] focus:ring-2 focus:ring-[#2e4a36]/15"
+                  />
+                  <input
+                    type="text"
+                    value="India"
+                    readOnly
+                    aria-readonly
+                    className="w-full rounded-[18px] border border-[#cfc3b4] bg-[#ece5d9] px-4 py-3 text-[14px] text-[#736a5f] outline-none"
+                  />
+                </div>
                 <textarea
                   rows={4}
                   placeholder="Anything we should know before we contact you?"
@@ -208,6 +262,26 @@ export default function CheckoutPageClient() {
                     setNotice(null);
                     setError(null);
 
+                    // Client-side validation. Server-side Zod still
+                    // enforces the same rules — this is for fast UX
+                    // feedback before we open Razorpay.
+                    if (!name.trim() || !email.trim() || !phone.trim()) {
+                      setError("Please fill in your name, email, and phone.");
+                      return;
+                    }
+                    if (
+                      !shippingLine1.trim() ||
+                      !shippingCity.trim() ||
+                      !shippingState.trim()
+                    ) {
+                      setError("Please complete your shipping address.");
+                      return;
+                    }
+                    if (!/^[0-9]{6}$/.test(shippingPincode)) {
+                      setError("Pincode must be 6 digits.");
+                      return;
+                    }
+
                     // 1. Create the Razorpay order on our backend.
                     let orderRes: Response;
                     try {
@@ -220,6 +294,12 @@ export default function CheckoutPageClient() {
                           phone,
                           notes,
                           source: "frontend-checkout",
+                          shippingLine1,
+                          shippingLine2: shippingLine2 || undefined,
+                          shippingCity,
+                          shippingState,
+                          shippingPincode,
+                          shippingCountry: "IN",
                           items: [
                             {
                               productSlug: item.slug,
@@ -274,6 +354,11 @@ export default function CheckoutPageClient() {
                             setEmail("");
                             setPhone("");
                             setNotes("");
+                            setShippingLine1("");
+                            setShippingLine2("");
+                            setShippingCity("");
+                            setShippingState("");
+                            setShippingPincode("");
                             router.push(`/checkout/order-confirmed?order=${order.orderId}`);
                           } else {
                             setError(

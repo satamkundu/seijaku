@@ -15,14 +15,21 @@ import {
   serializeCategory,
   serializeCollection,
   serializeMediaAsset,
+  serializeOrderRequest,
   serializeProduct,
   serializeProductNotification,
   serializeProgram,
   serializeRetreat,
+  serializeShippingSetting,
   serializeSiteSettings,
   serializeStory,
   serializeStorySummary,
 } from "../utils/serializers.js";
+import {
+  listPickupLocations,
+  testShiprocketAuth,
+} from "../lib/shiprocket.js";
+import { pushOrderToShiprocket } from "../lib/shiprocket-dispatch.js";
 import { asyncHandler, HttpError, parseBody } from "../utils/http.js";
 
 export const adminRouter = Router();
@@ -130,6 +137,13 @@ const productInputSchema = z.object({
   metadata: optionalJsonRecord,
   publishedAt: optionalDateTime,
   primaryImageId: z.string().optional().nullable(),
+  // Shiprocket dimensions. All nullable — runtime falls back to
+  // ShippingSetting defaults when a product hasn't been measured.
+  weightGrams: z.number().int().positive().nullable().optional(),
+  lengthCm: z.number().int().positive().nullable().optional(),
+  breadthCm: z.number().int().positive().nullable().optional(),
+  heightCm: z.number().int().positive().nullable().optional(),
+  hsnCode: optionalString,
 });
 
 const productMediaSchema = z.object({
@@ -314,6 +328,15 @@ const collectionSchema = z.object({
 
 const leadStatusSchema = z.object({
   status: z.enum(["NEW", "REVIEWED", "CONTACTED", "CLOSED"]),
+});
+
+const shippingSettingSchema = z.object({
+  pickupLocationName: optionalString,
+  defaultWeightGrams: z.number().int().positive().optional(),
+  defaultLengthCm: z.number().int().positive().optional(),
+  defaultBreadthCm: z.number().int().positive().optional(),
+  defaultHeightCm: z.number().int().positive().optional(),
+  autoPushEnabled: z.boolean().optional(),
 });
 
 const productInclude = {
@@ -851,6 +874,11 @@ adminRouter.post(
               ? new Date()
               : null,
           primaryImageId: payload.primaryImageId,
+          weightGrams: payload.weightGrams ?? null,
+          lengthCm: payload.lengthCm ?? null,
+          breadthCm: payload.breadthCm ?? null,
+          heightCm: payload.heightCm ?? null,
+          hsnCode: payload.hsnCode ?? null,
         },
         include: productInclude,
       });
@@ -954,6 +982,11 @@ adminRouter.patch(
           ...(payload.metadata !== undefined ? { metadataJson: payload.metadata } : {}),
           ...(publishedAtUpdate !== undefined ? { publishedAt: publishedAtUpdate } : {}),
           ...(payload.primaryImageId !== undefined ? { primaryImageId: payload.primaryImageId } : {}),
+          ...(payload.weightGrams !== undefined ? { weightGrams: payload.weightGrams } : {}),
+          ...(payload.lengthCm !== undefined ? { lengthCm: payload.lengthCm } : {}),
+          ...(payload.breadthCm !== undefined ? { breadthCm: payload.breadthCm } : {}),
+          ...(payload.heightCm !== undefined ? { heightCm: payload.heightCm } : {}),
+          ...(payload.hsnCode !== undefined ? { hsnCode: payload.hsnCode } : {}),
         },
         include: productInclude,
       });
@@ -1705,6 +1738,91 @@ adminRouter.put(
   })
 );
 
+// Shipping settings (Shiprocket integration — Decision #34). SUPER_ADMIN
+// only because the pickup location and auto-push toggle have real
+// dispatch consequences. Singleton row keyed by "default" — upserted
+// so the page is always reachable even on a fresh install.
+adminRouter.get(
+  "/shipping-settings",
+  requireAdminRole("SUPER_ADMIN"),
+  asyncHandler(async (_req, res) => {
+    const item = await prisma.shippingSetting.upsert({
+      where: { key: "default" },
+      update: {},
+      create: { key: "default" },
+    });
+    res.json({ item: serializeShippingSetting(item) });
+  })
+);
+
+adminRouter.put(
+  "/shipping-settings",
+  requireAdminRole("SUPER_ADMIN"),
+  asyncHandler(async (req, res) => {
+    const payload = parseBody(shippingSettingSchema, req.body);
+    const item = await prisma.shippingSetting.upsert({
+      where: { key: "default" },
+      update: {
+        ...(payload.pickupLocationName !== undefined ? { pickupLocationName: payload.pickupLocationName } : {}),
+        ...(payload.defaultWeightGrams !== undefined ? { defaultWeightGrams: payload.defaultWeightGrams } : {}),
+        ...(payload.defaultLengthCm !== undefined ? { defaultLengthCm: payload.defaultLengthCm } : {}),
+        ...(payload.defaultBreadthCm !== undefined ? { defaultBreadthCm: payload.defaultBreadthCm } : {}),
+        ...(payload.defaultHeightCm !== undefined ? { defaultHeightCm: payload.defaultHeightCm } : {}),
+        ...(payload.autoPushEnabled !== undefined ? { autoPushEnabled: payload.autoPushEnabled } : {}),
+      },
+      create: {
+        key: "default",
+        pickupLocationName: payload.pickupLocationName ?? null,
+        ...(payload.defaultWeightGrams !== undefined ? { defaultWeightGrams: payload.defaultWeightGrams } : {}),
+        ...(payload.defaultLengthCm !== undefined ? { defaultLengthCm: payload.defaultLengthCm } : {}),
+        ...(payload.defaultBreadthCm !== undefined ? { defaultBreadthCm: payload.defaultBreadthCm } : {}),
+        ...(payload.defaultHeightCm !== undefined ? { defaultHeightCm: payload.defaultHeightCm } : {}),
+        ...(payload.autoPushEnabled !== undefined ? { autoPushEnabled: payload.autoPushEnabled } : {}),
+      },
+    });
+    res.json({ item: serializeShippingSetting(item) });
+  })
+);
+
+// Live read from Shiprocket so admin can pick the pickup-location name
+// from a dropdown instead of typing it (typos here are the most common
+// cause of order-push failures). Single timed call; errors bubble up
+// with the upstream message so admin sees what's wrong.
+adminRouter.get(
+  "/shipping-settings/pickup-locations",
+  requireAdminRole("SUPER_ADMIN"),
+  asyncHandler(async (_req, res) => {
+    const items = await listPickupLocations();
+    res.json({ items });
+  })
+);
+
+// Health check: forces a fresh Shiprocket auth round-trip and persists
+// the result on the settings row so the admin page can show an
+// at-a-glance indicator across refreshes.
+adminRouter.post(
+  "/shipping-settings/test-connection",
+  requireAdminRole("SUPER_ADMIN"),
+  asyncHandler(async (_req, res) => {
+    let status = "ok";
+    let httpStatus = 200;
+    let errorMessage: string | null = null;
+    try {
+      await testShiprocketAuth();
+    } catch (err) {
+      status = err instanceof Error ? err.message : "shiprocket_unreachable";
+      errorMessage = status;
+      httpStatus = 502;
+    }
+    await prisma.shippingSetting.upsert({
+      where: { key: "default" },
+      update: { lastTestedAt: new Date(), lastTestStatus: status },
+      create: { key: "default", lastTestedAt: new Date(), lastTestStatus: status },
+    });
+    res.status(httpStatus).json({ ok: errorMessage === null, status, error: errorMessage });
+  })
+);
+
 adminRouter.get(
   "/lead/order-requests",
   asyncHandler(async (_req, res) => {
@@ -1712,7 +1830,7 @@ adminRouter.get(
       include: { items: { include: { product: true } } },
       orderBy: { createdAt: "desc" },
     });
-    res.json({ items });
+    res.json({ items: items.map(serializeOrderRequest) });
   })
 );
 
@@ -1723,8 +1841,32 @@ adminRouter.patch(
     const item = await prisma.orderRequest.update({
       where: { id: routeParam(req, "id") },
       data: { status: payload.status },
+      include: { items: { include: { product: true } } },
     });
-    res.json({ item });
+    res.json({ item: serializeOrderRequest(item) });
+  })
+);
+
+// Admin retry: re-push a paid order to Shiprocket. Used when the
+// fire-and-forget path on payment-success failed (network, missing
+// pickup location, etc.). Guarded so duplicate retries can't create
+// duplicate Shiprocket orders — see `canPushToShiprocket` in
+// shiprocket-dispatch.ts.
+adminRouter.post(
+  "/lead/order-requests/:id/shiprocket/push",
+  asyncHandler(async (req, res) => {
+    const id = routeParam(req, "id");
+    if (!id) throw new HttpError(400, "missing_id");
+    const outcome = await pushOrderToShiprocket(id);
+    if (!outcome.ok) {
+      throw new HttpError(400, outcome.error);
+    }
+    const item = await prisma.orderRequest.findUnique({
+      where: { id },
+      include: { items: { include: { product: true } } },
+    });
+    if (!item) throw new HttpError(404, "order_not_found");
+    res.json({ item: serializeOrderRequest(item) });
   })
 );
 

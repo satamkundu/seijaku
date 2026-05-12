@@ -749,6 +749,32 @@ Razorpay's webhook timeout is ~10s. Render Free sleeps after 15min idle and take
 - The legacy `POST /lead/order-requests` endpoint stays in place (no caller after this change) so rollback is a single-line frontend revert. Delete in a follow-up after Razorpay has been stable for ~1 week.
 - `LeadInbox` widens to surface payment chip + masked `razorpayPaymentId` + total beneath each order. Other lead types unchanged.
 
+### 34. Shiprocket Wired Into The Post-Payment Path
+
+Status: Active
+
+After a Razorpay payment captures, the backend pushes the order to Shiprocket as a server-to-server side effect. `OrderRequest` now carries a full Indian shipping address (collected on `/checkout`) plus Shiprocket state (`shiprocketOrderId`, `awbCode`, `courierName`, `trackingUrl`, `shipmentStatus` enum, `shipmentError`). `Product` carries optional physical dimensions (`weightGrams`, `lengthCm`, `breadthCm`, `heightCm`, `hsnCode`). A new singleton `ShippingSetting` row holds the pickup-location name, default fallback dimensions, and an auto-push toggle — edited via `/admin/shipping` (SUPER_ADMIN), DB-backed so no redeploy is needed to change pickup or pause auto-push during an outage.
+
+**Fire-and-forget on PAID.** Both `/payments/verify` (browser callback fast path) and `/payments/webhook` (server-to-server source of truth) call `pushOrderToShiprocket(orderId).catch(...)` immediately after the `paymentStatus → PAID` row flip. The customer's payment response is never blocked on Shiprocket: Render Free's cold-start (30–50s) plus Shiprocket's own latency can easily blow past Razorpay's 10s webhook timeout, so we ack Razorpay synchronously and dispatch shipping out-of-band. Failures persist to `OrderRequest.shipmentError` and surface a "Push to Shiprocket" retry button on the admin order row.
+
+**Idempotency.** `canPushToShiprocket()` in `src/lib/shiprocket-dispatch.ts` requires `paymentStatus = PAID AND shiprocketOrderId IS NULL`, so duplicate Razorpay webhooks + admin retries can never create duplicate Shiprocket orders. The unique constraint on `OrderRequest.shiprocketOrderId` is the belt-and-braces.
+
+**Auth.** Shiprocket exchanges email + password for a ~10-day JWT (no API-key option). `src/lib/shiprocket.ts` caches the token at module scope with an in-flight promise to coalesce concurrent callers — no polling, no recursion. On 401 the lib invalidates the cache and retries the request exactly once (`retryOn401: false` on the retry).
+
+**Why direct REST instead of the Shiprocket SDK.** Same reason as Razorpay (Decision #33): the SDK is heavy, lazy-load on Render Free's slow cold start is measurably worse than three small `fetch` calls (login + create-order + occasional pickup-list refresh).
+
+**Required env vars** (backend, fail-fast at boot): `SHIPROCKET_EMAIL`, `SHIPROCKET_PASSWORD`. Pickup-location name lives in the DB (`ShippingSetting.pickupLocationName`), seeded via `/admin/shipping`.
+
+**Phase 1 vs follow-ups.** Inbound Shiprocket webhooks for status updates (`payment.captured → PUSHED → PICKED_UP → IN_TRANSIT → DELIVERED`) are Phase 2 — admin manually refreshes status today. Cancel / label-download / NDR handling are Phase 3.
+
+**Schema migration `0010_shiprocket_fields`** is reversible: all OrderRequest + Product additions are nullable; the new `ShipmentStatus` enum and `ShippingSetting` table drop cleanly. The migration seeds a `ShippingSetting` singleton row so `/admin/shipping` is reachable on a fresh install without manual setup.
+
+**Trade-offs / risk surfaces.**
+- A backend crash between persisting `paymentStatus = PAID` and pushing to Shiprocket leaves a paid order at `shipmentStatus = NOT_CREATED`. Admin retry button is the recovery; a "needs Shiprocket push" admin dashboard counter is the obvious Phase 2 follow-up.
+- Products without dimensions fall back to `ShippingSetting` defaults at dispatch — Shiprocket will accept the order, but couriers may reweigh at pickup and surcharge. Admin should fill real dimensions per product over time.
+- Auth is password-based. Use a dedicated Shiprocket service account if possible; rotate periodically.
+- Pickup location renames in the Shiprocket dashboard break dispatch silently — Shiprocket returns a 400 and the dispatcher persists the error. Mitigate by updating `/admin/shipping` in the same change (the dropdown is fetched live from Shiprocket so admins see the new name immediately).
+
 ## How To Use This File
 
 - Add a new entry when a structural or cross-cutting product decision is made.
