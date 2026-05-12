@@ -80,6 +80,14 @@ function buildCoreState(product: ProductSummary | null) {
     seoDescription: product?.seoDescription ?? "",
     imageAlt: product?.imageAlt ?? "",
     ctaLabel: product?.ctaLabel ?? "",
+    // Shipping dimensions. Stored as empty string in the form when null
+    // so the inputs render uncontrolled-friendly text; coerced back to
+    // number-or-null at submit time.
+    weightGrams: product?.weightGrams != null ? String(product.weightGrams) : "",
+    lengthCm: product?.lengthCm != null ? String(product.lengthCm) : "",
+    breadthCm: product?.breadthCm != null ? String(product.breadthCm) : "",
+    heightCm: product?.heightCm != null ? String(product.heightCm) : "",
+    hsnCode: product?.hsnCode ?? "",
   };
 }
 
@@ -248,6 +256,16 @@ export default function ProductEditor({
 
       const effectiveWorkflow = overrides?.workflowStatus ?? core.workflowStatus;
 
+      // Shipping dimensions are stored as text in the form so the inputs
+      // can render an empty placeholder. Coerce back to number-or-null
+      // for the wire payload; blank → null (use default at dispatch).
+      const dimensionField = (raw: string): number | null => {
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+        const n = Number(trimmed);
+        return Number.isFinite(n) && Number.isInteger(n) && n > 0 ? n : null;
+      };
+
       const payload = {
         ...core,
         workflowStatus: effectiveWorkflow,
@@ -255,6 +273,11 @@ export default function ProductEditor({
         releaseDate: core.releaseDate ? new Date(core.releaseDate).toISOString() : null,
         metadata,
         primaryImageId: mediaState.primaryImageId || null,
+        weightGrams: dimensionField(core.weightGrams),
+        lengthCm: dimensionField(core.lengthCm),
+        breadthCm: dimensionField(core.breadthCm),
+        heightCm: dimensionField(core.heightCm),
+        hsnCode: core.hsnCode.trim() || null,
       };
 
       const res = await fetch(isExistingProduct ? `/api/admin/proxy/products/${productId}` : "/api/admin/proxy/products", {
@@ -976,6 +999,64 @@ export default function ProductEditor({
                   />
                 </AdminField>
               </div>
+            </div>
+          </AdminCard>
+
+          {/* Shipping dimensions (Shiprocket). Leaving any field blank
+              uses the default in /admin/shipping at dispatch time. */}
+          <AdminCard>
+            <h2 className="text-[14px] font-medium uppercase tracking-[0.16em] text-[#6a5d50]">Shipping dimensions</h2>
+            <p className="mt-2 text-[12px] leading-[1.7] text-[#8a8075]">
+              Used by Shiprocket when an order ships. Blank fields fall back to the defaults in <span className="font-mono">/admin/shipping</span>.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <AdminField label="Weight (grams)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={core.weightGrams}
+                  onChange={(e) => setCore((c) => ({ ...c, weightGrams: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+              <AdminField label="HSN code">
+                <input
+                  value={core.hsnCode}
+                  onChange={(e) => setCore((c) => ({ ...c, hsnCode: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+              <AdminField label="Length (cm)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={core.lengthCm}
+                  onChange={(e) => setCore((c) => ({ ...c, lengthCm: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+              <AdminField label="Breadth (cm)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={core.breadthCm}
+                  onChange={(e) => setCore((c) => ({ ...c, breadthCm: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
+              <AdminField label="Height (cm)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={core.heightCm}
+                  onChange={(e) => setCore((c) => ({ ...c, heightCm: e.target.value }))}
+                  className={adminInputClassName}
+                />
+              </AdminField>
             </div>
           </AdminCard>
 

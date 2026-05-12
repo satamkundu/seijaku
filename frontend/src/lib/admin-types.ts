@@ -62,6 +62,11 @@ export type ProductSummary = {
   imageAlt: string | null;
   ctaLabel: string | null;
   metadata: Record<string, unknown> | null;
+  weightGrams: number | null;
+  lengthCm: number | null;
+  breadthCm: number | null;
+  heightCm: number | null;
+  hsnCode: string | null;
   primaryImage: { id: string; url: string; altText: string | null } | null;
   media: Array<{
     id: string;

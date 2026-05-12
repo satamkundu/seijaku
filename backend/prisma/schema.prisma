@@ -133,6 +133,18 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum ShipmentStatus {
+  NOT_CREATED
+  PUSHED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  RTO
+  CANCELLED
+  FAILED
+}
+
 enum NewsletterStatus {
   SUBSCRIBED
   UNSUBSCRIBED
@@ -149,34 +161,34 @@ model Admin {
 }
 
 model Customer {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  name                String?
-  phone               String?
-  status              CustomerStatus       @default(ACTIVE)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  orderRequests       OrderRequest[]
-  programReservations ProgramReservation[]
-  retreatInquiries    RetreatInquiry[]
-  wishlistItems       WishlistItem[]
-  ritualEntries       RitualEntry[]
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  name                 String?
+  phone                String?
+  status               CustomerStatus        @default(ACTIVE)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  orderRequests        OrderRequest[]
+  programReservations  ProgramReservation[]
+  retreatInquiries     RetreatInquiry[]
+  wishlistItems        WishlistItem[]
+  ritualEntries        RitualEntry[]
   productNotifications ProductNotification[]
 }
 
 model MediaAsset {
-  id               String           @id @default(cuid())
-  url              String           @unique
+  id               String         @id @default(cuid())
+  url              String         @unique
   altText          String?
-  kind             MediaKind        @default(IMAGE)
+  kind             MediaKind      @default(IMAGE)
   width            Int?
   height           Int?
-  createdAt        DateTime         @default(now())
-  primaryProducts  Product[]        @relation("PrimaryProductImage")
+  createdAt        DateTime       @default(now())
+  primaryProducts  Product[]      @relation("PrimaryProductImage")
   productMedia     ProductMedia[]
-  articleImages    Article[]        @relation("ArticlePrimaryImage")
-  retreatImages    Retreat[]        @relation("RetreatPrimaryImage")
-  siteSettingsLogo SiteSetting[]    @relation("SiteLogoImage")
+  articleImages    Article[]      @relation("ArticlePrimaryImage")
+  retreatImages    Retreat[]      @relation("RetreatPrimaryImage")
+  siteSettingsLogo SiteSetting[]  @relation("SiteLogoImage")
 }
 
 model ProductCategory {
@@ -209,6 +221,13 @@ model Product {
   ctaLabel         String?
   metadataJson     Json?
   primaryImageId   String?
+  // Physical dimensions for Shiprocket order creation. Nullable; the
+  // runtime falls back to ShippingSetting defaults when these are null.
+  weightGrams      Int?
+  lengthCm         Int?
+  breadthCm        Int?
+  heightCm         Int?
+  hsnCode          String?
   createdAt        DateTime                    @default(now())
   updatedAt        DateTime                    @updatedAt
   publishedAt      DateTime?
@@ -289,14 +308,14 @@ model ProductOption {
 }
 
 model ProductOptionValue {
-  id               String         @id @default(cuid())
+  id               String        @id @default(cuid())
   productOptionId  String
   value            String
   label            String
-  priceDeltaAmount Int            @default(0)
-  sortOrder        Int            @default(0)
-  isActive         Boolean        @default(true)
-  productOption    ProductOption  @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
+  priceDeltaAmount Int           @default(0)
+  sortOrder        Int           @default(0)
+  isActive         Boolean       @default(true)
+  productOption    ProductOption @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
 
   @@unique([productOptionId, value])
 }
@@ -324,69 +343,69 @@ model CollectionProductLink {
 }
 
 model ShopBridgePage {
-  id                         String                  @id @default(cuid())
-  slug                       String                  @unique
-  navLabel                   String
-  heroEyebrow                String
-  heroTitle                  String
-  heroDescriptionJson        Json
-  heroImage                  String                  @default("")
-  heroImageAlt               String                  @default("")
-  heroImagePosition          String?
-  heroQuote                  String
-  introEyebrow               String?
-  introTitle                 String
-  introDescription           String
-  interludeImage             String?
-  interludeImageAlt          String?
-  productSectionEyebrow      String?
-  productSectionTitle        String?
-  productSectionDescription  String?
-  postCtaTitle               String?
-  postCtaDescription         String?
-  postCtaPrimaryLabel        String?
-  postCtaPrimaryHref         String?
-  postCtaSecondaryLabel      String?
-  postCtaSecondaryHref       String?
-  seoTitle                   String?
-  seoDescription             String?
-  seoFootnote                String?
-  contentJson                Json?
+  id                        String                  @id @default(cuid())
+  slug                      String                  @unique
+  navLabel                  String
+  heroEyebrow               String
+  heroTitle                 String
+  heroDescriptionJson       Json
+  heroImage                 String                  @default("")
+  heroImageAlt              String                  @default("")
+  heroImagePosition         String?
+  heroQuote                 String
+  introEyebrow              String?
+  introTitle                String
+  introDescription          String
+  interludeImage            String?
+  interludeImageAlt         String?
+  productSectionEyebrow     String?
+  productSectionTitle       String?
+  productSectionDescription String?
+  postCtaTitle              String?
+  postCtaDescription        String?
+  postCtaPrimaryLabel       String?
+  postCtaPrimaryHref        String?
+  postCtaSecondaryLabel     String?
+  postCtaSecondaryHref      String?
+  seoTitle                  String?
+  seoDescription            String?
+  seoFootnote               String?
+  contentJson               Json?
   // Home page editorial slots (slug = "home"). One image per "Explore
   // fragrance rituals" card on the home grid. Decision #31.
-  homeCard1Image             String?
-  homeCard1Alt               String?
-  homeCard2Image             String?
-  homeCard2Alt               String?
-  homeCard3Image             String?
-  homeCard3Alt               String?
-  homeCard4Image             String?
-  homeCard4Alt               String?
+  homeCard1Image            String?
+  homeCard1Alt              String?
+  homeCard2Image            String?
+  homeCard2Alt              String?
+  homeCard3Image            String?
+  homeCard3Alt              String?
+  homeCard4Image            String?
+  homeCard4Alt              String?
   // Our Story editorial slots (slug = "our-story"). The "Rituals Take
   // Form" video strip — two video URLs, each with an optional poster.
-  ritualVideo1Url            String?
-  ritualVideo1Poster         String?
-  ritualVideo2Url            String?
-  ritualVideo2Poster         String?
+  ritualVideo1Url           String?
+  ritualVideo1Poster        String?
+  ritualVideo2Url           String?
+  ritualVideo2Poster        String?
   // Seasonaldrops-hemanta editorial slots (slug = "seasonaldrops-hemanta").
   // Four form-character images and three mid-page image breaks.
-  formCard1Image             String?
-  formCard1Alt               String?
-  formCard2Image             String?
-  formCard2Alt               String?
-  formCard3Image             String?
-  formCard3Alt               String?
-  formCard4Image             String?
-  formCard4Alt               String?
-  imageBreak1Image           String?
-  imageBreak1Alt             String?
-  imageBreak2Image           String?
-  imageBreak2Alt             String?
-  imageBreak3Image           String?
-  imageBreak3Alt             String?
-  createdAt                  DateTime                @default(now())
-  updatedAt                  DateTime                @updatedAt
-  products                   ShopBridgePageProduct[]
+  formCard1Image            String?
+  formCard1Alt              String?
+  formCard2Image            String?
+  formCard2Alt              String?
+  formCard3Image            String?
+  formCard3Alt              String?
+  formCard4Image            String?
+  formCard4Alt              String?
+  imageBreak1Image          String?
+  imageBreak1Alt            String?
+  imageBreak2Image          String?
+  imageBreak2Alt            String?
+  imageBreak3Image          String?
+  imageBreak3Alt            String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  products                  ShopBridgePageProduct[]
 }
 
 model ShopBridgePageProduct {
@@ -419,8 +438,8 @@ model Article {
 }
 
 model Retreat {
-  id                String            @id @default(cuid())
-  slug              String            @unique
+  id                String           @id @default(cuid())
+  slug              String           @unique
   name              String
   shortDescription  String
   detailDescription String
@@ -428,11 +447,11 @@ model Retreat {
   season            String
   format            String
   groupSize         String
-  status            RetreatStatus     @default(UPCOMING)
+  status            RetreatStatus    @default(UPCOMING)
   primaryImageId    String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  primaryImage      MediaAsset?       @relation("RetreatPrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  primaryImage      MediaAsset?      @relation("RetreatPrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
   inquiries         RetreatInquiry[]
 }
 
@@ -480,42 +499,85 @@ model SeasonalDrop {
 }
 
 model SiteSetting {
-  id                 String      @id @default(cuid())
-  key                String      @unique @default("default")
-  footerEmail        String?
-  footerPhone        String?
-  addressLinesJson   Json?
-  newsletterHeading  String?
-  newsletterBody     String?
-  miscJson           Json?
-  logoImageId        String?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  logoImage          MediaAsset? @relation("SiteLogoImage", fields: [logoImageId], references: [id], onDelete: SetNull)
+  id                String      @id @default(cuid())
+  key               String      @unique @default("default")
+  footerEmail       String?
+  footerPhone       String?
+  addressLinesJson  Json?
+  newsletterHeading String?
+  newsletterBody    String?
+  miscJson          Json?
+  logoImageId       String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  logoImage         MediaAsset? @relation("SiteLogoImage", fields: [logoImageId], references: [id], onDelete: SetNull)
+}
+
+// Singleton settings for Shiprocket integration. Edited via /admin/shipping.
+// The pickup location must match a name configured in the Shiprocket
+// dashboard (Settings → Company → Pickup Addresses) — admin sees a
+// dropdown populated from Shiprocket's API, but the value persisted here
+// is just the text label.
+model ShippingSetting {
+  id                 String    @id @default(cuid())
+  key                String    @unique @default("default")
+  pickupLocationName String?
+  defaultWeightGrams Int       @default(300)
+  defaultLengthCm    Int       @default(15)
+  defaultBreadthCm   Int       @default(10)
+  defaultHeightCm    Int       @default(8)
+  autoPushEnabled    Boolean   @default(true)
+  // Set when admin clicks "Test connection" — stores the timestamp and a
+  // short status string ("ok" or an error code) so the page can render
+  // an at-a-glance health indicator across refreshes.
+  lastTestedAt       DateTime?
+  lastTestStatus     String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 model OrderRequest {
-  id                String             @id @default(cuid())
-  customerId        String?
-  email             String
-  name              String
-  phone             String?
-  source            String?
-  status            LeadStatus         @default(NEW)
-  notes             String?
+  id                   String             @id @default(cuid())
+  customerId           String?
+  email                String
+  name                 String
+  phone                String?
+  source               String?
+  status               LeadStatus         @default(NEW)
+  notes                String?
   // Razorpay payment fields. `paymentStatus` is orthogonal to `status`
   // (which tracks ops fulfillment lifecycle). `totalAmount` is in paise
   // (Razorpay's native unit), regardless of the per-item rupee values.
-  paymentStatus     PaymentStatus      @default(CREATED)
-  razorpayOrderId   String?            @unique
-  razorpayPaymentId String?
-  razorpaySignature String?
-  totalAmount       Int                @default(0)
-  currency          String             @default("INR")
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  items             OrderRequestItem[]
+  paymentStatus        PaymentStatus      @default(CREATED)
+  razorpayOrderId      String?            @unique
+  razorpayPaymentId    String?
+  razorpaySignature    String?
+  totalAmount          Int                @default(0)
+  currency             String             @default("INR")
+  // Shipping address. Nullable so pre-Razorpay legacy rows survive; new
+  // checkouts validate these client-side and server-side.
+  shippingLine1        String?
+  shippingLine2        String?
+  shippingCity         String?
+  shippingState        String?
+  shippingPincode      String?
+  shippingCountry      String?            @default("IN")
+  // Shiprocket integration state (Decision #34). All nullable until the
+  // order has been pushed; `shipmentStatus` is the workflow indicator.
+  shiprocketOrderId    String?            @unique
+  shiprocketShipmentId String?
+  awbCode              String?
+  courierName          String?
+  trackingUrl          String?
+  shipmentStatus       ShipmentStatus     @default(NOT_CREATED)
+  shipmentError        String?
+  shipmentPushedAt     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  customer             Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items                OrderRequestItem[]
+
+  @@index([shipmentStatus])
 }
 
 model OrderRequestItem {
@@ -556,18 +618,18 @@ model ProgramReservation {
 }
 
 model RetreatInquiry {
-  id         String      @id @default(cuid())
+  id         String     @id @default(cuid())
   retreatId  String
   customerId String?
   name       String
   email      String
   phone      String?
-  partySize  Int         @default(1)
+  partySize  Int        @default(1)
   notes      String?
-  status     LeadStatus  @default(NEW)
-  createdAt  DateTime    @default(now())
-  retreat    Retreat     @relation(fields: [retreatId], references: [id], onDelete: Restrict)
-  customer   Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  status     LeadStatus @default(NEW)
+  createdAt  DateTime   @default(now())
+  retreat    Retreat    @relation(fields: [retreatId], references: [id], onDelete: Restrict)
+  customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
 }
 
 model WishlistItem {
@@ -602,14 +664,14 @@ model ProductNotification {
 }
 
 model RitualEntry {
-  id            String   @id @default(cuid())
-  customerId    String
-  ritualType    String
-  reflection    String?
-  completedOn   DateTime
+  id             String   @id @default(cuid())
+  customerId     String
+  ritualType     String
+  reflection     String?
+  completedOn    DateTime
   streakSnapshot Int?
-  createdAt     DateTime @default(now())
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  customer       Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model Story {

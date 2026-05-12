@@ -48,7 +48,7 @@ Public:
 - `GET  /catalog/products`, `/catalog/products/:slug`, `/catalog/bridge-pages/:slug`
 - `GET  /content/articles`, `/content/articles/:slug`, `/content/retreats`, `/content/retreats/:slug`, `/content/programs`, `/content/programs/:slug`, `/content/story/current`, `/content/site-settings`
 - `POST /lead/order-requests`, `/lead/newsletter-subscriptions`, `/lead/program-reservations`, `/lead/retreat-inquiries`, `/lead/product-notifications`
-- `POST /payments/orders`, `/payments/verify`, `/payments/webhook`; `GET /payments/orders/:id` (Decision #33 — Razorpay-backed checkout). The webhook path is the only route that takes raw bytes — see the Webhooks section below. The legacy `/lead/order-requests` POST is no longer called by `/checkout` after Decision #33; kept around for rollback parity.
+- `POST /payments/orders`, `/payments/verify`, `/payments/webhook`; `GET /payments/orders/:id` (Decision #33 — Razorpay-backed checkout). The webhook path is the only route that takes raw bytes — see the Webhooks section below. The legacy `/lead/order-requests` POST is no longer called by `/checkout` after Decision #33; kept around for rollback parity. `/payments/orders` now also accepts the shipping address — required since Decision #34 (Shiprocket). Both `/verify` and the `payment.captured` webhook fire `pushOrderToShiprocket(orderId)` fire-and-forget after the `paymentStatus → PAID` row flip.
 
 Admin (all under `/admin`, all JWT-guarded):
 - `auth/login`, `auth/me`
@@ -59,7 +59,8 @@ Admin (all under `/admin`, all JWT-guarded):
 - `bridge-pages/*` — also carries the editorial slots for non-shop routes. `bridgePageSchema` accepts 26 additional nullable string fields: `homeCard1Image..homeCard4Image` (+ alt), `ritualVideo1Url` / `ritualVideo1Poster` / `ritualVideo2Url` / `ritualVideo2Poster`, `formCard1Image..formCard4Image` (+ alt), and `imageBreak1Image..imageBreak3Image` (+ alt). Records with slugs `home`, `our-story`, `seasonaldrops-hemanta` are read by the public editorial routes. See Decision #31.
 - `bridge-pages/*`, `articles/*`, `retreats/*`, `programs/*`, `program-sessions/*`, `collections/*`
 - `site-settings`
-- `leads/*` (order requests, newsletter subs, program reservations, retreat inquiries, product notifications)
+- `shipping-settings` — Shiprocket configuration singleton (SUPER_ADMIN). `GET /admin/shipping-settings`, `PUT /admin/shipping-settings`, `GET /admin/shipping-settings/pickup-locations` (live proxy to Shiprocket so admin picks from a dropdown), `POST /admin/shipping-settings/test-connection`. Decision #34.
+- `leads/*` (order requests, newsletter subs, program reservations, retreat inquiries, product notifications). `POST /admin/lead/order-requests/:id/shiprocket/push` re-attempts a paid order's Shiprocket dispatch when the auto-push on PAID failed.
 
 ## Commands
 
@@ -105,6 +106,8 @@ Current prod wiring: `STORAGE_DRIVER=s3` pointing at Supabase; `CORS_ORIGIN=http
 Notify Me admin ping (all optional; feature opt-in): `ADMIN_NOTIFICATION_EMAIL`, `NOTIFIER_FROM_EMAIL`, `RESEND_API_KEY`. While unset, `src/lib/notifier.ts` silently skips dispatch and the `ProductNotification` row still surfaces in `/admin/leads`. See `DECISIONS.md#14` for the rationale on keeping the dispatcher stubbed.
 
 Razorpay (all required at boot — Zod fail-fast, no soft mode): `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`. The first two come from the Razorpay Dashboard → API Keys (or Test Keys). The webhook secret is generated when you create the webhook in Settings → Webhooks (it's separate from key_secret). For local dev that doesn't exercise payments, any non-empty placeholder works (the `.env.example` ships test placeholder strings); just don't run a real transaction with placeholder values. See `DECISIONS.md#33`.
+
+Shiprocket (both required at boot — Zod fail-fast): `SHIPROCKET_EMAIL`, `SHIPROCKET_PASSWORD`. Shiprocket has no API-key option; email + password exchange for a ~10-day JWT cached in `src/lib/shiprocket.ts`. Pickup-location name + default dimensions + auto-push toggle are admin-editable in the DB via `/admin/shipping` (DB-backed so admins change them without a redeploy). For local dev that doesn't exercise shipping, any non-empty placeholders work. See `DECISIONS.md#34`.
 
 ## Webhooks
 

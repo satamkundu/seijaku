@@ -18,6 +18,11 @@ export function serializeProduct(product: any) {
     imageAlt: product.imageAlt,
     ctaLabel: product.ctaLabel,
     metadata: product.metadataJson,
+    weightGrams: product.weightGrams ?? null,
+    lengthCm: product.lengthCm ?? null,
+    breadthCm: product.breadthCm ?? null,
+    heightCm: product.heightCm ?? null,
+    hsnCode: product.hsnCode ?? null,
     primaryImage: product.primaryImage
       ? {
           id: product.primaryImage.id,
@@ -332,6 +337,69 @@ export function serializeStory(story: any) {
     artifacts: [story.artifact1, story.artifact2, story.artifact3].map(serializeProduct),
     createdAt: story.createdAt.toISOString(),
     updatedAt: story.updatedAt.toISOString(),
+  };
+}
+
+export function serializeOrderRequest(order: any) {
+  return {
+    id: order.id,
+    email: order.email,
+    name: order.name,
+    phone: order.phone,
+    source: order.source,
+    status: order.status,
+    notes: order.notes,
+    paymentStatus: order.paymentStatus,
+    razorpayOrderId: order.razorpayOrderId,
+    razorpayPaymentId: order.razorpayPaymentId,
+    totalAmount: order.totalAmount,
+    currency: order.currency,
+    shippingLine1: order.shippingLine1,
+    shippingLine2: order.shippingLine2,
+    shippingCity: order.shippingCity,
+    shippingState: order.shippingState,
+    shippingPincode: order.shippingPincode,
+    shippingCountry: order.shippingCountry,
+    shiprocketOrderId: order.shiprocketOrderId,
+    shiprocketShipmentId: order.shiprocketShipmentId,
+    awbCode: order.awbCode,
+    courierName: order.courierName,
+    trackingUrl: order.trackingUrl,
+    shipmentStatus: order.shipmentStatus,
+    shipmentError: order.shipmentError,
+    shipmentPushedAt: order.shipmentPushedAt?.toISOString() ?? null,
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+    items: (order.items ?? []).map((item: any) => ({
+      id: item.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPriceAmount: item.unitPriceAmount,
+      variantSummary: item.variantSummary,
+      product: item.product
+        ? {
+            id: item.product.id,
+            slug: item.product.slug,
+            title: item.product.title,
+          }
+        : null,
+    })),
+  };
+}
+
+export function serializeShippingSetting(setting: any) {
+  return {
+    id: setting.id,
+    key: setting.key,
+    pickupLocationName: setting.pickupLocationName,
+    defaultWeightGrams: setting.defaultWeightGrams,
+    defaultLengthCm: setting.defaultLengthCm,
+    defaultBreadthCm: setting.defaultBreadthCm,
+    defaultHeightCm: setting.defaultHeightCm,
+    autoPushEnabled: setting.autoPushEnabled,
+    lastTestedAt: setting.lastTestedAt?.toISOString() ?? null,
+    lastTestStatus: setting.lastTestStatus,
+    updatedAt: setting.updatedAt.toISOString(),
   };
 }
 

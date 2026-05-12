@@ -20,6 +20,7 @@ const navigation: Array<{ href: string; label: string; roles?: Array<AdminIdenti
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/media", label: "Media" },
   { href: "/admin/leads", label: "Leads" },
+  { href: "/admin/shipping", label: "Shipping", roles: ["SUPER_ADMIN"] },
   { href: "/admin/settings", label: "Settings", roles: ["SUPER_ADMIN"] },
   { href: "/admin/team", label: "Team", roles: ["SUPER_ADMIN"] },
 ];
