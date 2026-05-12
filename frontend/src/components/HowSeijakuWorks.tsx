@@ -11,6 +11,8 @@ import {
 } from "@/src/lib/story-types";
 import type { ProductView } from "@/src/lib/product-types";
 
+const RITUAL_VIDEO_HREF = "https://www.youtube.com/@SeijakuWellness";
+
 type StepDescriptor = {
   number: string;
   title: string;
@@ -241,7 +243,7 @@ export default function HowSeijakuWorks() {
               <p className="mt-5 text-[10px] uppercase tracking-[0.24em] text-[#a27f58]">03</p>
               <p className="mt-3 font-serif text-[24px] leading-[1.18] text-[#302a23] sm:text-[25px]">Ritual</p>
               <a
-                href={story.videoUrl}
+                href={RITUAL_VIDEO_HREF}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-4 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[#4f473f] underline decoration-black/10 underline-offset-4 transition-opacity duration-200 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8e806e] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f8f3eb]"

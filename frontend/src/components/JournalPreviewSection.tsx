@@ -14,25 +14,16 @@ const CURATED_ARTICLE_SLUGS = [
   "inside-dokra-from-heritage-craft-to-wearable-artifact",
 ] as const;
 
-// Per-slug fallback covers used when the backend article has no
-// primaryImage. Local /public assets — kept until each article gets a
-// proper cover via /admin/articles.
-const FALLBACK_COVERS: Record<string, { src: string; alt: string }> = {
-  "ritual-objects-for-urban-evenings": {
-    src: "/images/journal-ritual.jpg",
-    alt: "Mindful evening fragrance rituals for calming living",
-  },
-  "how-to-scent-textiles-right": {
-    src: "/images/journal-textiles.jpg",
-    alt: "Scented textiles and fragrance rituals guide",
-  },
-  "inside-dokra-from-heritage-craft-to-wearable-artifact": {
-    src: "/images/journal-dokra.jpg",
-    alt: "Dokra craft Bengal artisan story and fragrance objects",
-  },
+const NEUTRAL_FALLBACK_SRC = "/images/quiet-tea-ritual-box-lifestyle-neutral.png";
+
+type BackendArticleResponseItem = {
+  slug: string;
+  title: string;
+  category: string;
+  primaryImage: { url: string; altText: string | null } | null;
 };
 
-type ArticlesResponse = { items: SeijakuLifeArticle[] };
+type ArticlesResponse = { items: BackendArticleResponseItem[] };
 
 export default function JournalPreviewSection() {
   const [articles, setArticles] = useState<SeijakuLifeArticle[]>([]);
@@ -49,8 +40,19 @@ export default function JournalPreviewSection() {
         if (cancelled) return;
         const bySlug = new Map(data.items.map((a) => [a.slug, a]));
         const curated = CURATED_ARTICLE_SLUGS.flatMap((slug) => {
-          const article = bySlug.get(slug);
-          return article ? [article] : [];
+          const raw = bySlug.get(slug);
+          if (!raw) return [];
+          const view: SeijakuLifeArticle = {
+            slug: raw.slug,
+            title: raw.title,
+            category: raw.category,
+            date: "",
+            excerpt: "",
+            bodyMarkdown: null,
+            image: raw.primaryImage?.url ?? undefined,
+            imageAlt: raw.primaryImage?.altText ?? undefined,
+          };
+          return [view];
         });
         setArticles(curated);
       } catch {
@@ -79,9 +81,8 @@ export default function JournalPreviewSection() {
 
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {articles.map((article) => {
-            const fallback = FALLBACK_COVERS[article.slug];
-            const src = article.image ?? fallback?.src ?? "/images/quiet-tea-ritual-box-lifestyle-neutral.png";
-            const alt = article.imageAlt ?? fallback?.alt ?? article.title;
+            const src = article.image ?? NEUTRAL_FALLBACK_SRC;
+            const alt = article.imageAlt ?? article.title;
             const href = `/a-seijaku-life/${article.slug}`;
             return (
               <article
