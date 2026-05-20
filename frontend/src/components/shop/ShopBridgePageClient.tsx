@@ -134,18 +134,6 @@ export default function ShopBridgePageClient({ page, products }: ShopBridgePageC
           </div>
         </section>
 
-        <section className="section-editorial bg-[#EAE3D8]">
-          <div className="page-container">
-            <div className="section-divider pt-10">
-              <div className="max-w-[760px]">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#9a785d]">{page.introEyebrow}</p>
-                <h2 className="mt-4 text-[#1c1c1c]">{page.introTitle}</h2>
-                <p className="mt-4 max-w-[56ch] text-[16px] leading-[1.82] text-[#625b53]">{page.introDescription}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section id="bridge-products" className="section-primary bg-[#F3EFE7]">
           <div className="page-container max-w-[1180px]">
             {isDokraPage ? (
