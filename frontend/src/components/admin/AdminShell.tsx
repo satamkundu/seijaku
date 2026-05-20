@@ -38,19 +38,19 @@ export default function AdminShell({
   return (
     <div className="min-h-screen bg-[#efe7db] text-[#2d2824]">
       <div className="mx-auto grid min-h-screen max-w-[1600px] gap-6 px-4 py-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-6">
-        <aside className="rounded-[32px] border border-[#d7cec1] bg-[#2e4a36] px-5 py-6 text-[#f4efe8] shadow-[0_24px_80px_rgba(30,37,33,0.14)] lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
-          <Link href="/admin" className="inline-flex items-center gap-3">
+        <aside className="flex flex-col rounded-[32px] border border-[#d7cec1] bg-[#2e4a36] px-5 py-6 text-[#f4efe8] shadow-[0_24px_80px_rgba(30,37,33,0.14)] lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
+          <Link href="/admin" className="inline-flex shrink-0 items-center gap-3">
             <span className="font-serif text-[28px] tracking-[-0.03em]">Seijaku</span>
             <span className="rounded-full border border-white/20 px-2 py-1 text-[9px] uppercase tracking-[0.24em] text-white/70">Admin</span>
           </Link>
 
-          <div className="mt-8 rounded-[24px] border border-white/10 bg-white/6 p-4">
+          <div className="mt-8 shrink-0 rounded-[24px] border border-white/10 bg-white/6 p-4">
             <p className="text-[10px] uppercase tracking-[0.26em] text-white/60">Signed in as</p>
             <p className="mt-3 text-[14px] leading-[1.7] text-white/90">{admin.email}</p>
             <p className="mt-2 text-[10px] uppercase tracking-[0.24em] text-[#e0c98a]">{admin.role.replace("_", " ")}</p>
           </div>
 
-          <nav className="mt-8 space-y-2">
+          <nav className="mt-8 -mr-2 min-h-0 flex-1 space-y-2 overflow-y-scroll pr-2 [&::-webkit-scrollbar-thumb:hover]:bg-white/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
             {visibleNavigation.map((item) => {
               const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
 
