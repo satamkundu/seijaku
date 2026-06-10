@@ -50,6 +50,12 @@ export default function CheckoutPageClient() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [shippingCost, setShippingCost] = useState<number | null>(null);
+  const [estimatedDeliveryDays, setEstimatedDeliveryDays] = useState<string | null>(null);
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+
+  // Calculate total with shipping (GST is included in item.price)
+  const totalWithShipping = shippingCost !== null && item ? item.price + shippingCost : item?.price ?? 0;
 
   // Resolve the selected slug against the backend. Single attempt; on failure
   // the component falls through to the empty state (matches the pre-migration
@@ -83,6 +89,63 @@ export default function CheckoutPageClient() {
       cancelled = true;
     };
   }, [activeSlug]);
+
+  // Calculate shipping when address is complete
+  useEffect(() => {
+    if (
+      !item ||
+      !shippingPincode ||
+      shippingPincode.length !== 6 ||
+      !shippingCity.trim() ||
+      !shippingState.trim()
+    ) {
+      setShippingCost(null);
+      setEstimatedDeliveryDays(null);
+      return;
+    }
+
+    setIsCalculatingShipping(true);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Use actual product dimensions from item data
+        const res = await fetch("/api/public/shipping/calculate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pincode: shippingPincode,
+            weightKg: (item.weightGrams ?? 500) / 1000, // Convert grams to kg
+            lengthCm: item.lengthCm ?? 0,
+            breadthCm: item.breadthCm ?? 0,
+            heightCm: item.heightCm ?? 0,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as {
+          shippingCost: number;
+          estimatedDeliveryDays: string;
+        };
+        console.log(data);
+        if (!cancelled) {
+          setShippingCost(data.shippingCost);
+          setEstimatedDeliveryDays(data.estimatedDeliveryDays);
+        }
+      } catch {
+        if (!cancelled) {
+          setShippingCost(100); // Default fallback
+          setEstimatedDeliveryDays("5-7");
+        }
+      } finally {
+        if (!cancelled) setIsCalculatingShipping(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [item, shippingPincode, shippingCity, shippingState]);
 
   if (isInitialLoading) {
     return (
@@ -151,7 +214,10 @@ export default function CheckoutPageClient() {
             <div className="mt-6 space-y-4 text-[14px] leading-[1.8] text-[#5d554b]">
               <div className="flex items-center justify-between gap-4">
                 <span>Product</span>
-                <span>{item.priceLabel}</span>
+                <div className="text-right">
+                  <div>{item.priceLabel}</div>
+                  <div className="text-[12px] text-[#8d7d6d]">Included GST</div>
+                </div>
               </div>
               {checkoutVariantLabel ? (
                 <div className="flex items-start justify-between gap-4">
@@ -160,13 +226,24 @@ export default function CheckoutPageClient() {
                 </div>
               ) : null}
               <div className="flex items-center justify-between gap-4">
-                <span>Shipping</span>
-                <span>Calculated at fulfillment</span>
+                <span>Shipping Charges</span>
+                <span>
+                  {isCalculatingShipping ? (
+                    <span className="text-[12px] text-[#8d7d6d]">Calculating...</span>
+                  ) : shippingCost !== null ? (
+                    <div className="text-right">
+                      <div>INR {shippingCost.toLocaleString("en-IN")}</div>
+                      <div className="text-[12px] text-[#8d7d6d]">Est. {estimatedDeliveryDays} days</div>
+                    </div>
+                  ) : (
+                    "Enter address to calculate"
+                  )}
+                </span>
               </div>
               <div className="h-px bg-black/8" />
               <div className="flex items-center justify-between gap-4 text-[16px] text-[#1f1a16]">
                 <span>Total</span>
-                <span>{item.priceLabel}</span>
+                <span>INR {totalWithShipping.toLocaleString("en-IN")}</span>
               </div>
             </div>
 
