@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 import { canonicalShopRoutes } from "@/src/lib/shop-routes";
 import FooterNewsletterForm from "@/src/components/FooterNewsletterForm";
@@ -21,9 +21,9 @@ const journalLinks = [
 ];
 
 const infoLinks = [
-  { label: "Terms & Agreements", href: "#" },
-  { label: "Shipping & Delivery", href: "#" },
-  { label: "FAQs", href: "#" },
+  { label: "Terms & Agreements", href: "/terms-and-agreements" },
+  { label: "Shipping & Delivery", href: "/shipping-and-delivery" },
+  { label: "FAQs", href: "/faqs" },
 ];
 
 const followGroups = [
