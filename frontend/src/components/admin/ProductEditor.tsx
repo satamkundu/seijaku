@@ -17,6 +17,7 @@ import {
   adminTextareaClassName,
 } from "@/src/components/admin/AdminField";
 import MediaGallery, { type GalleryItem } from "@/src/components/admin/MediaGallery";
+import RichTextarea from "@/src/components/admin/RichTextarea";
 import type {
   BridgePage,
   CollectionSummary,
@@ -602,11 +603,9 @@ export default function ProductEditor({
                 />
               </AdminField>
               <AdminField label="Long description">
-                <textarea
-                  rows={8}
+                <RichTextarea
                   value={core.longDescription}
-                  onChange={(e) => setCore((c) => ({ ...c, longDescription: e.target.value }))}
-                  className={adminTextareaClassName}
+                  onChange={(val) => setCore((c) => ({ ...c, longDescription: val }))}
                 />
               </AdminField>
             </div>

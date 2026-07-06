@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 import { canonicalShopRoutes } from "@/src/lib/shop-routes";
 import FooterNewsletterForm from "@/src/components/FooterNewsletterForm";
@@ -21,9 +21,9 @@ const journalLinks = [
 ];
 
 const infoLinks = [
-  { label: "Terms & Agreements", href: "#" },
-  { label: "Shipping & Delivery", href: "#" },
-  { label: "FAQs", href: "#" },
+  { label: "Terms & Agreements", href: "/terms-and-agreements" },
+  { label: "Shipping & Delivery", href: "/shipping-and-delivery" },
+  { label: "FAQs", href: "/faqs" },
 ];
 
 const followGroups = [
@@ -63,7 +63,7 @@ function FooterLink({ href, label }: { href: string; label: string }) {
 
 export default function Footer() {
   return (
-    <footer className="mt-[120px] w-full border-t border-black/5 bg-[#e8e2d7] pb-14 pt-24 text-[#1f1d1a] sm:pb-16 sm:pt-28 lg:pt-32">
+    <footer className="mt-[60px] w-full border-t border-black/5 bg-[#e8e2d7] pb-14 pt-24 text-[#1f1d1a] sm:pb-16 sm:pt-28 lg:pt-32">
       <div className="page-container max-w-[1180px]">
         <section>
           <p className="text-[12px] font-medium uppercase tracking-[0.28em] text-[#2b2823]">Seijaku Weeklies</p>

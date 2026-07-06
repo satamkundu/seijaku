@@ -248,7 +248,7 @@ export default function ShopAllPageClient({ products }: ShopAllPageClientProps) 
   return (
     <>
       <main className="min-h-screen bg-[#f3efe7] pt-[72px] text-[#3a3a3a] sm:pt-[76px]">
-        <section className="section-primary pb-6 pt-18 sm:pb-7 sm:pt-22">
+        {/* <section className="section-primary pb-6 pt-18 sm:pb-7 sm:pt-22"> */}
           <div className="page-container max-w-[1240px]">
             <div className="max-w-[760px]">
               <p className="text-[9px] uppercase tracking-[0.32em] text-[#9a785d]">Collection</p>
@@ -258,7 +258,7 @@ export default function ShopAllPageClient({ products }: ShopAllPageClientProps) 
               </p>
             </div>
           </div>
-        </section>
+        {/* </section> */}
 
         <section className="pb-20 sm:pb-24">
           <div className="page-container max-w-[1240px]">
