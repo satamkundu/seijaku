@@ -150,11 +150,11 @@ export default function CheckoutPageClient() {
   if (isInitialLoading) {
     return (
       <main className="min-h-screen bg-[#f3efe7] pt-[72px] text-[#3a3a3a] sm:pt-[76px]">
-        <section className="section-primary pt-24 sm:pt-28">
-          <div className="page-container max-w-[900px] rounded-[30px] border border-[#d8cec1] bg-[#faf7f1] px-8 py-12 text-center">
-            <p className="text-[14px] leading-[1.85] text-[#625b53]">Loading your selected product…</p>
-          </div>
-        </section>
+        {/* <section className="section-primary pt-24 sm:pt-28"> */}
+        <div className="page-container max-w-[900px] rounded-[30px] border border-[#d8cec1] mt-24 sm:mt-28 bg-[#faf7f1] px-8 py-12 text-center">
+          <p className="text-[14px] leading-[1.85] text-[#625b53]">Loading your selected product…</p>
+        </div>
+        {/* </section> */}
       </main>
     );
   }
