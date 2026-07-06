@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 import { getShopProductUseCase, hasVariantSelector, type ProductView } from "@/src/lib/product-types";
 
@@ -202,9 +203,9 @@ export default function ProductDetailDrawer({ item, isOpen, onClose }: ProductDe
             </div>
 
             <div>
-              <p className="text-[15px] leading-[1.85] text-[#5f5850] whitespace-pre-line">
-                {displayedDescription}
-              </p>
+              <div className="text-[15px] leading-[1.85] text-[#5f5850] [&_p]:mt-3 [&_p]:first:mt-0 [&_h3]:mt-6 [&_h3]:font-serif [&_h3]:text-[18px] [&_h3]:leading-[1.3] [&_h3]:text-[#1c1c1c] [&_h3]:first:mt-0 [&_ul]:mt-3 [&_ul]:pl-5 [&_ul]:list-disc [&_ul]:marker:text-[#8f7a65] [&_ol]:mt-3 [&_ol]:pl-5 [&_ol]:list-decimal [&_ol]:marker:text-[#8f7a65] [&_li]:mt-1 [&_a]:text-[#2e4a36] [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-[#243c2c] [&_strong]:font-semibold [&_strong]:text-[#1c1c1c] [&_em]:italic">
+                <ReactMarkdown>{displayedDescription}</ReactMarkdown>
+              </div>
               {canToggleDescription ? (
                 <button
                   type="button"
