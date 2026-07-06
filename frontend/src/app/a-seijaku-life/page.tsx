@@ -27,8 +27,8 @@ export default async function ASeijakuLifePage() {
 
   return (
     <main className="min-h-screen bg-[#f3efe7] pt-[72px] text-[#3a3a3a] sm:pt-[76px]">
-      <section className="section-primary pb-8 pt-20 sm:pt-24">
-        <div className="page-container max-w-[980px]">
+      {/* <section className="section-primary pb-8 pt-20 sm:pt-24"> */}
+        <div className="page-container max-w-[980px]  pt-20 sm:pt-24">
           <p className="text-[10px] uppercase tracking-[0.28em] text-[#9a785d]">Journal</p>
           <h1 className="mt-5 max-w-[10ch] text-[clamp(44px,5.2vw,68px)] leading-[1.02] tracking-[-0.028em] text-[#1d1a17]">
             A Seijaku Life
@@ -41,7 +41,7 @@ export default async function ASeijakuLifePage() {
           </p>
           <div className="mt-12 h-px w-full bg-black/6" />
         </div>
-      </section>
+      {/* </section> */}
 
       {articles.length > 0 && (
         <section className="section-editorial pb-16 pt-4 sm:pb-20">
