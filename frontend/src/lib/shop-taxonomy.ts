@@ -148,3 +148,33 @@ export function matchesShopMaterialFilter(
   return false;
 }
 
+export type ShopPriceFilterOption =
+  | "Under ₹500"
+  | "Under ₹1,000"
+  | "Under ₹2,500"
+  | "Premium Gifts";
+
+const shopPriceFilterOptions: ShopPriceFilterOption[] = [
+  "Under ₹500",
+  "Under ₹1,000",
+  "Under ₹2,500",
+  "Premium Gifts",
+];
+
+export function getShopPrices(): ShopPriceFilterOption[] {
+  return shopPriceFilterOptions;
+}
+
+export function matchesShopPriceFilter(
+  item: { price: number },
+  selectedPrice: ShopPriceFilterOption | "All",
+): boolean {
+  if (selectedPrice === "All") return true;
+  if (selectedPrice === "Under ₹500") return item.price < 500;
+  if (selectedPrice === "Under ₹1,000") return item.price < 1000;
+  if (selectedPrice === "Under ₹2,500") return item.price < 2500;
+  if (selectedPrice === "Premium Gifts") return item.price >= 2500;
+  return false;
+}
+
+

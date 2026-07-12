@@ -9,19 +9,28 @@ export const dynamic = "force-dynamic";
 // the home page JournalPreviewSection. First slug renders as the large
 // editorial card; the other two stack beside it. Render order is
 // brand-controlled here, not driven by the article's `featured` flag.
+
 const CURATED_ARTICLE_SLUGS = [
-  "ritual-objects-for-urban-evenings",
-  "how-to-scent-textiles-right",
-  "inside-dokra-from-heritage-craft-to-wearable-artifact",
+  // "ritual-objects-for-urban-evenings",
+  // "how-to-scent-textiles-right",
+  // "inside-dokra-from-heritage-craft-to-wearable-artifact",
 ] as const;
 
 export default async function ASeijakuLifePage() {
   const allArticles = await fetchArticles();
+  const MAX_ARTICLES = null; // null/undefined = show all
+
   const articlesBySlug = new Map(allArticles.map((a) => [a.slug, a]));
-  const articles = CURATED_ARTICLE_SLUGS.flatMap((slug) => {
-    const article = articlesBySlug.get(slug);
-    return article ? [article] : [];
-  });
+
+  const articles =
+    CURATED_ARTICLE_SLUGS.length === 0
+      ? (MAX_ARTICLES == null
+          ? allArticles
+          : allArticles.slice(0, MAX_ARTICLES))
+      : CURATED_ARTICLE_SLUGS.flatMap((slug) => {
+          const article = articlesBySlug.get(slug);
+          return article ? [article] : [];
+        });
 
   const [featured, ...rest] = articles;
 
