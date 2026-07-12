@@ -7,6 +7,7 @@ import AdminCard from "@/src/components/admin/AdminCard";
 import { AdminField, adminButtonClassName, adminDangerButtonClassName, adminInputClassName, adminSecondaryButtonClassName, adminTextareaClassName } from "@/src/components/admin/AdminField";
 import MarkdownPreview from "@/src/components/admin/MarkdownPreview";
 import type { Article, MediaAsset } from "@/src/lib/admin-types";
+import RichTextarea from "./RichTextarea";
 
 type ArticleManagerProps = {
   items: Article[];
@@ -329,10 +330,18 @@ export default function ArticleManager({ items, media, canDelete }: ArticleManag
 
           <div className="mt-5 grid gap-5">
             <AdminField label="Excerpt">
-              <textarea rows={4} value={draft.excerpt} onChange={(event) => setDraft((current) => ({ ...current, excerpt: event.target.value }))} className={adminTextareaClassName} />
+              {/* <textarea rows={4} value={draft.excerpt} onChange={(event) => setDraft((current) => ({ ...current, excerpt: event.target.value }))} className={adminTextareaClassName} /> */}
+              <RichTextarea
+                value={draft.excerpt}
+                onChange={(val) => setDraft((c) => ({ ...c, excerpt: val }))}
+              />
             </AdminField>
             <AdminField label="Body markdown">
-              <textarea rows={14} value={draft.bodyMarkdown} onChange={(event) => setDraft((current) => ({ ...current, bodyMarkdown: event.target.value }))} className={adminTextareaClassName} />
+              {/* <textarea rows={14} value={draft.bodyMarkdown} onChange={(event) => setDraft((current) => ({ ...current, bodyMarkdown: event.target.value }))} className={adminTextareaClassName} /> */}
+              <RichTextarea
+                value={draft.bodyMarkdown}
+                onChange={(val) => setDraft((c) => ({ ...c, bodyMarkdown: val }))}
+              />
             </AdminField>
             <div className="grid gap-5 md:grid-cols-2">
               <AdminField label="SEO title">
