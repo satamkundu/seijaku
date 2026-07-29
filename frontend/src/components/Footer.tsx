@@ -25,6 +25,7 @@ const infoLinks = [
   { label: "Shipping, Returns & Exchanges", href: "/shipping-and-delivery" },
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "FAQs", href: "/faqs" },
+  { label: "Get in Touch", href: "/contact" },
 ];
 
 const followGroups = [
