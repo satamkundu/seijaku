@@ -21,8 +21,9 @@ const journalLinks = [
 ];
 
 const infoLinks = [
-  { label: "Terms & Agreements", href: "/terms-and-agreements" },
-  { label: "Shipping & Delivery", href: "/shipping-and-delivery" },
+  { label: "Terms & Conditions", href: "/terms-and-agreements" },
+  { label: "Shipping, Returns & Exchanges", href: "/shipping-and-delivery" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "FAQs", href: "/faqs" },
 ];
 

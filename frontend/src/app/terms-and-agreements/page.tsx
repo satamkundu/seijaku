@@ -309,7 +309,11 @@ export default function TermsAndAgreementsPage() {
                 Privacy
               </h2>
               <p className="mt-4">
-                Your use of the Website is also governed by our Privacy Policy, which explains how your personal information is collected, used, stored and protected.
+                Your use of the Website is also governed by our{" "}
+                <Link href="/privacy-policy" className="text-[#365b3f] hover:underline">
+                  Privacy Policy
+                </Link>
+                , which explains how your personal information is collected, used, stored and protected.
               </p>
             </div>
 
