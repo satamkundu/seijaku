@@ -17,7 +17,7 @@ const journalLinks = [
   { label: "Our Story", href: "/our-story" },
   { label: "Seijaku Weeklies", href: "#footer-email" },
   { label: "A Seijaku Life", href: "/a-seijaku-life" },
-  { label: "Seijaku on YouTube", href: "https://www.youtube.com/" },
+  { label: "Seijaku on YouTube", href: "https://www.youtube.com/@SeijakuWellness" },
 ];
 
 const infoLinks = [
