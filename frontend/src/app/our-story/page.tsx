@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 
 import { fetchBridgePage } from "@/src/lib/bridge-page-types";
@@ -77,7 +77,7 @@ export default async function OurStoryPage() {
     <main className="min-h-screen bg-[#F3EFE7] pt-[72px] text-[#3a3a3a] sm:pt-[76px]">
       <OurStoryHero imageSrc={bridge?.heroImage} />
 
-      <EditorialSection className="bg-[#eee7dc] py-16 sm:py-18 lg:py-20" width="max-w-3xl">
+      {/* <EditorialSection className="bg-[#eee7dc] py-16 sm:py-18 lg:py-20" width="max-w-3xl">
         <SectionHeading>Why Seijaku</SectionHeading>
         <div className="mt-7 space-y-2.5 text-[16px] font-light leading-[1.84] text-[#4f4943] sm:text-[17px] lg:text-[18px]">
           {whyLines.map((line) => (
@@ -130,12 +130,26 @@ export default async function OurStoryPage() {
             <p key={line}>{line}</p>
           ))}
         </div>
-      </EditorialSection>
+      </EditorialSection> */}
 
       <SplitProcessVideoStrip
         videos={[
-          { url: bridge?.ritualVideo1Url, poster: bridge?.ritualVideo1Poster },
-          { url: bridge?.ritualVideo2Url, poster: bridge?.ritualVideo2Poster },
+          {
+            url: bridge?.ritualVideo1Url || "https://www.instagram.com/reel/DaAu0v9Tytw/?igsh=MnJuODY4dzZpeTlh",
+            poster: bridge?.ritualVideo1Poster,
+          },
+          {
+            url: bridge?.ritualVideo2Url || "https://www.instagram.com/reel/DakwPICTWYU/?igsh=MWswdWs3ODBwbXRtZg==",
+            poster: bridge?.ritualVideo2Poster,
+          },
+          {
+            url: bridge?.ritualVideo2Url || "https://www.instagram.com/reel/Da2xzYmzffr/?igsh=MXc4c3djc2NoZnlpNw==",
+            poster: bridge?.ritualVideo2Poster,
+          },
+          {
+            url: bridge?.ritualVideo2Url || "https://www.instagram.com/reel/DbI1GPHTpL1/?igsh=d3d0cWd6ZTh5MjB4",
+            poster: bridge?.ritualVideo2Poster,
+          },
         ]}
       />
 
@@ -160,7 +174,7 @@ export default async function OurStoryPage() {
 
       {/* "In Their Words" testimonial-videos section hidden per Decision #31. */}
 
-      <section className="bg-[#ece5da] py-18 sm:py-20 lg:py-22">
+      {/* <section className="bg-[#ece5da] py-18 sm:py-20 lg:py-22">
         <div className="page-container">
           <div className="max-w-3xl">
             <SectionHeading>Begin Anywhere</SectionHeading>
@@ -183,7 +197,7 @@ export default async function OurStoryPage() {
             </Link>
           </div>
         </div>
-      </section>
+      </section> */}
     </main>
   );
 }
