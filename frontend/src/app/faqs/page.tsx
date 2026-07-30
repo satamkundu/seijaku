@@ -17,7 +17,7 @@ export default function FaqsPage() {
             Frequently Asked Questions
           </h1>
           <p className="mt-4 text-[15px] font-light leading-[1.8] text-[#5d574e]">
-            Find answers to common inquiries about our handmade artifacts, slow scent practices, shipping logistics, and customer support.
+            Whether you&apos;re discovering Seijaku for the first time or waiting for your order to arrive, we&apos;ve answered some of the questions we&apos;re most often asked. If you can&apos;t find what you&apos;re looking for, we&apos;d be happy to help at <a href="mailto:lifeatseijaku@gmail.com" className="text-[#365b3f] hover:underline">lifeatseijaku@gmail.com</a>.
           </p>
           <div className="mt-10 h-px w-full bg-black/6" />
         </div>

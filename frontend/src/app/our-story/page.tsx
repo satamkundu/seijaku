@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 
 import { fetchBridgePage } from "@/src/lib/bridge-page-types";
@@ -77,7 +77,7 @@ export default async function OurStoryPage() {
     <main className="min-h-screen bg-[#F3EFE7] pt-[72px] text-[#3a3a3a] sm:pt-[76px]">
       <OurStoryHero imageSrc={bridge?.heroImage} />
 
-      <EditorialSection className="bg-[#eee7dc] py-16 sm:py-18 lg:py-20" width="max-w-3xl">
+      {/* <EditorialSection className="bg-[#eee7dc] py-16 sm:py-18 lg:py-20" width="max-w-3xl">
         <SectionHeading>Why Seijaku</SectionHeading>
         <div className="mt-7 space-y-2.5 text-[16px] font-light leading-[1.84] text-[#4f4943] sm:text-[17px] lg:text-[18px]">
           {whyLines.map((line) => (
@@ -130,12 +130,26 @@ export default async function OurStoryPage() {
             <p key={line}>{line}</p>
           ))}
         </div>
-      </EditorialSection>
+      </EditorialSection> */}
 
       <SplitProcessVideoStrip
         videos={[
-          { url: bridge?.ritualVideo1Url, poster: bridge?.ritualVideo1Poster },
-          { url: bridge?.ritualVideo2Url, poster: bridge?.ritualVideo2Poster },
+          {
+            url: bridge?.ritualVideo1Url || "/videos/029ab9ce94181a8f15262c950d43ff177a81826e2047122c3ab8c410eafa5808632b8bb893d3e9a4899a2a593d241528.MP4",
+            poster: bridge?.ritualVideo1Poster,
+          },
+          {
+            url: bridge?.ritualVideo2Url || "/videos/5752c253721b8a0b6d1480b7ad6cfdbe5e531f493e2779e28b2d1cb5cdefe95346970dcfebcd30e2f04641f08b6e200c.MP4",
+            poster: bridge?.ritualVideo2Poster,
+          },
+          {
+            url: bridge?.ritualVideo1Url || "/videos/852a9c051397d85dcede2913109c1a2bfac5e4bed3b6b206b648ab19c7efccecfa3f4f6f532ab6b2db5142009d067660.MP4",
+            poster: bridge?.ritualVideo1Poster,
+          },
+          {
+            url: bridge?.ritualVideo2Url || "/videos/d05402bc32e2e662419f3da24b84c6c8f27ad5c8a51d86ae6faec5f8de813c8c3e8978ed634cb302020c87c22e39d7c2.MP4",
+            poster: bridge?.ritualVideo2Poster,
+          },
         ]}
       />
 
@@ -160,7 +174,7 @@ export default async function OurStoryPage() {
 
       {/* "In Their Words" testimonial-videos section hidden per Decision #31. */}
 
-      <section className="bg-[#ece5da] py-18 sm:py-20 lg:py-22">
+      {/* <section className="bg-[#ece5da] py-18 sm:py-20 lg:py-22">
         <div className="page-container">
           <div className="max-w-3xl">
             <SectionHeading>Begin Anywhere</SectionHeading>
@@ -183,7 +197,7 @@ export default async function OurStoryPage() {
             </Link>
           </div>
         </div>
-      </section>
+      </section> */}
     </main>
   );
 }

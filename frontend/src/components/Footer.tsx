@@ -17,13 +17,15 @@ const journalLinks = [
   { label: "Our Story", href: "/our-story" },
   { label: "Seijaku Weeklies", href: "#footer-email" },
   { label: "A Seijaku Life", href: "/a-seijaku-life" },
-  { label: "Seijaku on YouTube", href: "https://www.youtube.com/" },
+  { label: "Seijaku on YouTube", href: "https://www.youtube.com/@SeijakuWellness" },
 ];
 
 const infoLinks = [
-  { label: "Terms & Agreements", href: "/terms-and-agreements" },
-  { label: "Shipping & Delivery", href: "/shipping-and-delivery" },
+  { label: "Terms & Conditions", href: "/terms-and-agreements" },
+  { label: "Shipping, Returns & Exchanges", href: "/shipping-and-delivery" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "FAQs", href: "/faqs" },
+  { label: "Get in Touch", href: "/contact" },
 ];
 
 const followGroups = [
