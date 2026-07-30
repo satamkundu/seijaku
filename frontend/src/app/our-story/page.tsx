@@ -77,7 +77,7 @@ export default async function OurStoryPage() {
     <main className="min-h-screen bg-[#F3EFE7] pt-[72px] text-[#3a3a3a] sm:pt-[76px]">
       <OurStoryHero imageSrc={bridge?.heroImage} />
 
-      {/* <EditorialSection className="bg-[#eee7dc] py-16 sm:py-18 lg:py-20" width="max-w-3xl">
+      <EditorialSection className="bg-[#eee7dc] py-16 sm:py-18 lg:py-20" width="max-w-3xl">
         <SectionHeading>Why Seijaku</SectionHeading>
         <div className="mt-7 space-y-2.5 text-[16px] font-light leading-[1.84] text-[#4f4943] sm:text-[17px] lg:text-[18px]">
           {whyLines.map((line) => (
@@ -130,7 +130,7 @@ export default async function OurStoryPage() {
             <p key={line}>{line}</p>
           ))}
         </div>
-      </EditorialSection> */}
+      </EditorialSection>
 
       <SplitProcessVideoStrip
         videos={[
@@ -178,7 +178,7 @@ export default async function OurStoryPage() {
 
       {/* "In Their Words" testimonial-videos section hidden per Decision #31. */}
 
-      {/* <section className="bg-[#ece5da] py-18 sm:py-20 lg:py-22">
+      <section className="bg-[#ece5da] py-18 sm:py-20 lg:py-22">
         <div className="page-container">
           <div className="max-w-3xl">
             <SectionHeading>Begin Anywhere</SectionHeading>
@@ -201,7 +201,7 @@ export default async function OurStoryPage() {
             </Link>
           </div>
         </div>
-      </section> */}
+      </section>
     </main>
   );
 }
