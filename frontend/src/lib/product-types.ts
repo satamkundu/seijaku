@@ -239,7 +239,7 @@ export function isUnbuyableProduct(item: ProductView): boolean {
 export function getShopProductUseCase(item: ProductView): ShopUseCase | undefined {
   if (item.useCase) return item.useCase;
   if (item.type === "Perfume") return "skin";
-  if (item.type === "Scarf / Square") return "cloth";
+  if (item.type === "Scarf / Square" || item.type === "Scarf" || item.type === "Square" ) return "cloth";
   if (item.type === "Diffuser") return "diffusion objects";
   return undefined;
 }
