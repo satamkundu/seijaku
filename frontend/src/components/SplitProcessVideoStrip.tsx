@@ -1,9 +1,5 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-
 type SplitProcessVideoStripProps = {
-  videos?: Array<{ url?: string; poster?: string; alt?: string }>;
+  videos?: Array<{ url?: string; poster?: string; alt?: string; link?: string }>;
 };
 
 function getInstagramEmbedUrl(url: string) {
@@ -26,76 +22,6 @@ function getInstagramEmbedUrl(url: string) {
 
 export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVideoStripProps) {
   const isFourGrid = videos.length >= 4;
-  const [reloadKeys, setReloadKeys] = useState<number[]>([0, 0, 0, 0]);
-  const iframeRefs = useRef<Array<HTMLIFrameElement | null>>([]);
-  
-  // Local video state & refs
-  const [playingIdx, setPlayingIdx] = useState<number | null>(null);
-  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
-
-  // Detect when an iframe is clicked/played and reload other iframes to pause them
-  useEffect(() => {
-    if (!isFourGrid) return;
-
-    let lastActiveElement: Element | null = null;
-
-    const interval = setInterval(() => {
-      if (document.activeElement !== lastActiveElement) {
-        lastActiveElement = document.activeElement;
-
-        if (document.activeElement && document.activeElement.tagName === "IFRAME") {
-          const activeIframe = document.activeElement as HTMLIFrameElement;
-          const clickedIndex = iframeRefs.current.findIndex((ref) => ref === activeIframe);
-
-          if (clickedIndex !== -1) {
-            // Pause any local video that might be playing
-            videoRefs.current.forEach((v) => {
-              if (v) v.pause();
-            });
-            setPlayingIdx(null);
-
-            // Reload all OTHER iframes to pause them
-            setReloadKeys((prev) => {
-              const next = [...prev];
-              let changed = false;
-              for (let i = 0; i < next.length; i++) {
-                if (i !== clickedIndex && next[i] === prev[i]) {
-                  next[i] = prev[i] + 1; // Increment reload key to reload/pause
-                  changed = true;
-                }
-              }
-              return changed ? next : prev;
-            });
-          }
-        }
-      }
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, [isFourGrid]);
-
-  const handleLocalPlayPause = (idx: number) => {
-    const video = videoRefs.current[idx];
-    if (!video) return;
-
-    if (playingIdx === idx) {
-      video.pause();
-      setPlayingIdx(null);
-    } else {
-      // Pause all other local videos
-      videoRefs.current.forEach((v, i) => {
-        if (i !== idx && v) {
-          v.pause();
-        }
-      });
-
-      // Reload/reset all Instagram iframes to pause them
-      setReloadKeys((prev) => prev.map((k) => k + 1));
-
-      video.play().catch((err) => console.log("Video play failed:", err));
-      setPlayingIdx(idx);
-    }
-  };
 
   if (isFourGrid) {
     return (
@@ -120,6 +46,7 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
             {videos.slice(0, 4).map((video, index) => {
               const url = video?.url && video.url.length > 0 ? video.url : null;
               const poster = video?.poster && video.poster.length > 0 ? video.poster : null;
+              const link = video?.link && video.link.length > 0 ? video.link : null;
               const isInstagram =
                 url &&
                 (url.includes("instagram.com/reel/") ||
@@ -127,63 +54,33 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
                   url.includes("instagram.com/p/") ||
                   url.includes("instagram.com/tv/"));
 
-              return (
-                <div
-                  key={index}
-                  className="relative overflow-hidden rounded-[20px] border border-black/5 bg-[#faf8f4] shadow-sm aspect-[9/16] transition-transform duration-300 hover:scale-[1.01]"
-                >
+              const cardContent = (
+                <>
                   {isInstagram ? (
-                    <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
                       <iframe
-                        key={`${index}-${reloadKeys[index]}`}
-                        ref={(el) => {
-                          iframeRefs.current[index] = el;
-                        }}
                         src={getInstagramEmbedUrl(url)}
                         style={{
                           position: "absolute",
-                          top: "-60px", // Crop top username bar
+                          top: "-60px",
                           left: "-2px",
                           width: "calc(100% + 4px)",
-                          height: "calc(100% + 220px)", // Crop bottom View on Instagram bar
+                          height: "calc(100% + 220px)",
                         }}
                         className="border-0"
-                        allowFullScreen
                         scrolling="no"
-                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                       />
                     </div>
                   ) : url ? (
-                    <div className="absolute inset-0 overflow-hidden" onClick={() => handleLocalPlayPause(index)}>
-                      <video
-                        ref={(el) => {
-                          videoRefs.current[index] = el;
-                        }}
-                        src={url}
-                        poster={poster ?? undefined}
-                        loop
-                        playsInline
-                        preload="metadata"
-                        className="absolute inset-0 h-full w-full object-cover cursor-pointer"
-                        onPlay={() => setPlayingIdx(index)}
-                        onPause={() => {
-                          if (playingIdx === index) {
-                            setPlayingIdx(null);
-                          }
-                        }}
-                      />
-
-                      {/* Play Button Overlay (shown when paused) */}
-                      {playingIdx !== index && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10 cursor-pointer transition-opacity duration-300">
-                          <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg transition-transform duration-300 hover:scale-105">
-                            <svg className="w-6 h-6 text-[#1d1a17] fill-current translate-x-0.5" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <video
+                      src={url}
+                      poster={poster ?? undefined}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
                   ) : poster ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -208,6 +105,29 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
                       seijaku.co
                     </span>
                   </div>
+                </>
+              );
+
+              if (link) {
+                return (
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    key={index}
+                    className="relative overflow-hidden rounded-[20px] border border-black/5 bg-[#faf8f4] shadow-sm aspect-[9/16] transition-transform duration-300 hover:scale-[1.01] block cursor-pointer"
+                  >
+                    {cardContent}
+                  </a>
+                );
+              }
+
+              return (
+                <div
+                  key={index}
+                  className="relative overflow-hidden rounded-[20px] border border-black/5 bg-[#faf8f4] shadow-sm aspect-[9/16] transition-transform duration-300 hover:scale-[1.01]"
+                >
+                  {cardContent}
                 </div>
               );
             })}
@@ -231,27 +151,13 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
             const video = videos[index];
             const url = video?.url && video.url.length > 0 ? video.url : null;
             const poster = video?.poster && video.poster.length > 0 ? video.poster : null;
-            const isInstagram =
-              url &&
-              (url.includes("instagram.com/reel/") ||
-                url.includes("instagram.com/reels/") ||
-                url.includes("instagram.com/p/") ||
-                url.includes("instagram.com/tv/"));
 
             return (
               <div
                 key={panel.title}
                 className="relative flex min-h-[240px] items-center justify-center overflow-hidden bg-[#fffdf9] px-8 py-12 sm:min-h-[420px] sm:px-10 lg:min-h-[520px] lg:px-14"
               >
-                {isInstagram ? (
-                  <iframe
-                    src={getInstagramEmbedUrl(url)}
-                    className="absolute inset-0 h-full w-full border-0"
-                    allowFullScreen
-                    scrolling="no"
-                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                  />
-                ) : url ? (
+                {url ? (
                   <video
                     src={url}
                     poster={poster ?? undefined}
