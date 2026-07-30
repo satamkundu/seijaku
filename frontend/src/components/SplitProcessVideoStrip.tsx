@@ -28,6 +28,10 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
   const isFourGrid = videos.length >= 4;
   const [reloadKeys, setReloadKeys] = useState<number[]>([0, 0, 0, 0]);
   const iframeRefs = useRef<Array<HTMLIFrameElement | null>>([]);
+  
+  // Local video state & refs
+  const [playingIdx, setPlayingIdx] = useState<number | null>(null);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
 
   // Detect when an iframe is clicked/played and reload other iframes to pause them
   useEffect(() => {
@@ -44,6 +48,12 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
           const clickedIndex = iframeRefs.current.findIndex((ref) => ref === activeIframe);
 
           if (clickedIndex !== -1) {
+            // Pause any local video that might be playing
+            videoRefs.current.forEach((v) => {
+              if (v) v.pause();
+            });
+            setPlayingIdx(null);
+
             // Reload all OTHER iframes to pause them
             setReloadKeys((prev) => {
               const next = [...prev];
@@ -64,6 +74,29 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
     return () => clearInterval(interval);
   }, [isFourGrid]);
 
+  const handleLocalPlayPause = (idx: number) => {
+    const video = videoRefs.current[idx];
+    if (!video) return;
+
+    if (playingIdx === idx) {
+      video.pause();
+      setPlayingIdx(null);
+    } else {
+      // Pause all other local videos
+      videoRefs.current.forEach((v, i) => {
+        if (i !== idx && v) {
+          v.pause();
+        }
+      });
+
+      // Reload/reset all Instagram iframes to pause them
+      setReloadKeys((prev) => prev.map((k) => k + 1));
+
+      video.play().catch((err) => console.log("Video play failed:", err));
+      setPlayingIdx(idx);
+    }
+  };
+
   if (isFourGrid) {
     return (
       <section aria-labelledby="process-strip-title" className="bg-[#ece5da] py-16 sm:py-20 lg:py-24">
@@ -83,7 +116,7 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
           </div>
 
           {/* 2x2 Grid on Mobile, 4-column row on Desktop */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-2 md:gap-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             {videos.slice(0, 4).map((video, index) => {
               const url = video?.url && video.url.length > 0 ? video.url : null;
               const poster = video?.poster && video.poster.length > 0 ? video.poster : null;
@@ -97,7 +130,7 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
               return (
                 <div
                   key={index}
-                  className="relative overflow-hidden rounded-[16px] border border-black/5 bg-[#faf8f4] shadow-sm aspect-[9/16] transition-transform duration-300 hover:scale-[1.01]"
+                  className="relative overflow-hidden rounded-[20px] border border-black/5 bg-[#faf8f4] shadow-sm aspect-[9/16] transition-transform duration-300 hover:scale-[1.01]"
                 >
                   {isInstagram ? (
                     <div className="absolute inset-0 overflow-hidden">
@@ -112,7 +145,7 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
                           top: "-60px", // Crop top username bar
                           left: "-2px",
                           width: "calc(100% + 4px)",
-                          height: "calc(100% + 120px)", // Crop bottom View on Instagram bar
+                          height: "calc(100% + 220px)", // Crop bottom View on Instagram bar
                         }}
                         className="border-0"
                         allowFullScreen
@@ -121,15 +154,36 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
                       />
                     </div>
                   ) : url ? (
-                    <video
-                      src={url}
-                      poster={poster ?? undefined}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
+                    <div className="absolute inset-0 overflow-hidden" onClick={() => handleLocalPlayPause(index)}>
+                      <video
+                        ref={(el) => {
+                          videoRefs.current[index] = el;
+                        }}
+                        src={url}
+                        poster={poster ?? undefined}
+                        loop
+                        playsInline
+                        preload="metadata"
+                        className="absolute inset-0 h-full w-full object-cover cursor-pointer"
+                        onPlay={() => setPlayingIdx(index)}
+                        onPause={() => {
+                          if (playingIdx === index) {
+                            setPlayingIdx(null);
+                          }
+                        }}
+                      />
+
+                      {/* Play Button Overlay (shown when paused) */}
+                      {playingIdx !== index && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10 cursor-pointer transition-opacity duration-300">
+                          <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg transition-transform duration-300 hover:scale-105">
+                            <svg className="w-6 h-6 text-[#1d1a17] fill-current translate-x-0.5" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : poster ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -143,6 +197,17 @@ export default function SplitProcessVideoStrip({ videos = [] }: SplitProcessVide
                       <p className="text-[10px] uppercase tracking-wider text-[#8b7f70] mt-2">Video {index + 1}</p>
                     </div>
                   )}
+
+                  {/* Premium Brand Signature Pill at the bottom */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-full py-1.5 px-3.5 flex items-center gap-2 shadow-md border border-black/5 whitespace-nowrap z-10 select-none pointer-events-none">
+                    <span className="text-[10px] font-semibold text-[#1d1a17] tracking-[0.05em] font-sans">
+                      seijaku
+                    </span>
+                    <div className="w-px h-3 bg-black/10" />
+                    <span className="text-[9px] font-light text-[#8a8378] font-sans">
+                      seijaku.co
+                    </span>
+                  </div>
                 </div>
               );
             })}
