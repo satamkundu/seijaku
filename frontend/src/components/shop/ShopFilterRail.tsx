@@ -133,13 +133,13 @@ export default function ShopFilterRail({
           onChange={onTypeChange}
         />
 
-        <ShopFilterSection
+        {/* <ShopFilterSection
           title="By Material"
           idPrefix="shop-filter-material"
           options={materials}
           value={selectedMaterial}
           onChange={onMaterialChange}
-        />
+        /> */}
 
         {/* <ShopFilterSection
           title="By Use Case"

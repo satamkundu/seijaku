@@ -175,11 +175,11 @@ export default function ArticleManager({ items, media, canDelete }: ArticleManag
         method: "DELETE",
       });
 
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
-        setError(data?.error ?? "Unable to delete article.");
-        return;
-      }
+      // if (!response.ok) {
+      //   const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      //   setError(data?.error ?? "Unable to delete article.");
+      //   return;
+      // }
 
       setSelectedId(null);
       setNotice("Article deleted.");

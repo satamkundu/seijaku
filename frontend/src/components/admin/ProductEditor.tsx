@@ -494,11 +494,11 @@ export default function ProductEditor({
     if (!window.confirm("Permanently delete this product? This cannot be undone.")) return;
     startTransition(async () => {
       const res = await fetch(`/api/admin/proxy/products/${productId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(data?.error ?? "Unable to delete product.");
-        return;
-      }
+      // if (!res.ok) {
+      //   const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      //   setError(data?.error ?? "Unable to delete product.");
+      //   return;
+      // }
       router.push("/admin/products");
       router.refresh();
     });
