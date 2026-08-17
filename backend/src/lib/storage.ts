@@ -32,7 +32,7 @@ async function storeLocally(fileName: string, buffer: Buffer): Promise<StoredUpl
   await fs.mkdir(uploadDir, { recursive: true });
   await fs.writeFile(path.join(uploadDir, fileName), buffer);
   return {
-    url: `${getPublicBaseUrl()}/uploads/${fileName}`,
+    url: `/uploads/${fileName}`,
   } satisfies StoredUpload;
 }
 
